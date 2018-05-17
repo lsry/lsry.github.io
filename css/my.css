@@ -23,6 +23,7 @@ li{
     font-size:25px;
 	list-style:none;
 	border:1px solid lightgray;
+	border-radius:5px;
 	display:flex;
 	justify-content:space-between;
 }

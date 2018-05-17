@@ -7,7 +7,7 @@
       <link rel="shortcut icon" href="../img/lsry.png">
   </head>
   <body>
-    <div class="inner">
+    <div id="con" class="inner">
       <h2 id="-">九月的故事</h2>
       <p>这大概要从两款游戏说起。</p>
       <h3 id="-">一、起始的物语</h3>
@@ -29,5 +29,12 @@
       <p>反正大概是不适合玩游戏的吧，好多游戏都把我劝退了，几年前初次接触某个网游，那里环境极其不友好，素质低下，本来是有一些兴趣的，不过，某次之后，就再也没有去过了。</p>
       <p>所以大概是会成为不玩游戏的人吧，虽然一直以来也没有肝过。不过从以前到现在，也留下了一样，那就是之后的故事了。</p>
    </div>
+
+   <script>
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        var x = document.getElementById("con");
+        x.style.margin="25px 2%";
+      }
+    </script>
   </body>
 </html>

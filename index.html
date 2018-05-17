@@ -18,9 +18,16 @@
     <header>
       <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
 	  </header>
-    <ul class="content">
+    <ul id="con" class="content">
       <li><a href="2017/TalkGame.html">九月的故事</a><span class="">2017/09/27</span></li>
       <li><a href="2017/TalkGame.html">九月的故事</a><span class="">2017/09/27</span></li>
     </ul>
+
+    <script>
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        var x = document.getElementById("con");
+        x.style.margin="20px 2%";
+        }
+    </script>
   </body>
 </html>

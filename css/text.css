@@ -6,6 +6,7 @@ body{
 .inner{  
     margin:25px 15%;
 	border:1px solid lightgray;
+	border-radius:5px;
 	padding:50px;
 }
 
