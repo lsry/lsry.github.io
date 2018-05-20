@@ -1,29 +1,39 @@
 *{  
-    margin:0;
+  margin:0;
 	padding:0;
 }
 
 header{  
-    width:100%;
+  width:100%;
 	height:50px;
 	border-bottom:2px solid lightgray;
 }
 
 .tit{  
-    margin:5px 10%;
+  margin:5px 10%;
 }
 
 .content{  
-    margin:20px 15%;
+  margin:20px 15%;
 }
 li{
-    margin-top:5px;
+  margin-top:5px;
 	padding-left:15px;
 	padding-right:15px;
-    font-size:25px;
+  font-size:25px;
 	list-style:none;
 	border:1px solid lightgray;
 	border-radius:5px;
 	display:flex;
 	justify-content:space-between;
+}
+
+footer{  
+  width:100%;
+	height:25px;
+	position:absolute;
+	bottom:0px;
+	font-size:15px;
+	border-top:2px solid lightgray;
+	text-align:center;
 }
