@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>首页</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>首页</title>
     <!-- 引入 Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/my.css" rel="stylesheet">
@@ -18,18 +18,23 @@
     <header>
       <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
 	  </header>
-    <ul id="con" class="content">
-      <li><a href="2017/TalkGame.html">九月的故事</a><span class="">2017/09/27</span></li>
-      <li><a href="2017/TalkGame.html">九月的故事</a><span class="">2017/09/27</span></li>
+     
+    <ul id="con" class="con">
+      <li><a class="lia" href="2017/TalkGame.html">
+        <span>九月的故事</span><span class="date">2017/09/27</span>
+      </a></li>
+      <li><a class="lia" href="2017/TalkGame.html">
+        <span>九月的故事</span><span class="date">2017/09/27</span>
+      </a></li>
     </ul>
     
-    <footer>Copyright ©2018 Lsry</footer>
+    <footer>Copyright © 2018 - 2018 lsry, All Rights Reserved</footer>
 
     <!-- 检查使用设备来改变布局 -->
     <script>
       if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
         var x = document.getElementById("con");
-        x.style.margin="20px 2%";
+        x.style.margin="20px 1%";
         }
     </script>
   </body>

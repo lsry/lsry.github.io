@@ -10,22 +10,29 @@ header{
 }
 
 .tit{  
-  margin:5px 10%;
+  margin:5px 1%;
 }
 
-.content{  
+.con{  
   margin:20px 15%;
 }
-li{
+.con li{
   margin-top:5px;
-	padding-left:15px;
-	padding-right:15px;
-  font-size:25px;
+	padding:5px 40px;
 	list-style:none;
 	border:1px solid lightgray;
 	border-radius:5px;
-	display:flex;
-	justify-content:space-between;
+	height:40px;
+}
+
+.lia{  
+    display:flex;
+		justify-content:space-between;
+		font-size:20px;
+}
+
+.date{  
+    color:black;
 }
 
 footer{  

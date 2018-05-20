@@ -1,30 +1,30 @@
 body{  
-    font-size:18px;
+  font-size:18px;
 	font-family:"lucida grande", "lucida sans unicode", lucida, helvetica, "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
 }
 
 .inner{  
-    margin:25px 15%;
+  margin:25px 15%;
 	border:1px solid lightgray;
 	border-radius:5px;
 	padding:50px;
 }
 
 h2{  
-    font-family: "Palatino Linotype", "Book Antiqua", Palatino, Helvetica, STKaiti, SimSun, serif;
-    border-bottom:2px solid lightgray;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Helvetica, STKaiti, SimSun, serif;
+  border-bottom:2px solid lightgray;
 	padding-bottom:10px;
 	color:#595b51;
 }
 
 h3{ 
-    font-family: "Palatino Linotype", "Book Antiqua", Palatino, Helvetica, STKaiti, SimSun, serif;
-    color:#6c6c6c;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Helvetica, STKaiti, SimSun, serif;
+  color:#6c6c6c;
 	width:75%;
 	padding-bottom:5px;
 	border-bottom:1px solid lightgray;
 }
 
 p{  
-    line-height:1.8;
+  line-height:1.8;
 }
