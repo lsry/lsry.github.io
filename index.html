@@ -16,7 +16,13 @@
   </head>
   <body>
     <header>
-      <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
+      <div id="" class="">
+        <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
+      </div>
+      <div id="" class="btn-area">
+        <a href="#">联系</a>
+        <a href="#">归档</a>
+      </div>
 	  </header>
      
     <ul id="con" class="con">
@@ -35,7 +41,11 @@
       if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
         var x = document.getElementById("con");
         x.style.margin="20px 1%";
+        for(var i = 0; i < x.children.length ; i++){
+           var  obj  =  x.children[i];
+           obj.style.padding="5px 10px";
         }
+      }
     </script>
   </body>
 </html>
