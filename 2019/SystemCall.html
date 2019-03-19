@@ -37,7 +37,7 @@
 </code></pre>
 </li>
 </ul>
-<p><img src="img/debugInfo.png" alt=""></p>
+<p><img src="img/debugInfo.PNG" alt=""></p>
 <ul>
 <li>使用 make 命令编译内核</li>
 </ul>
@@ -242,6 +242,18 @@
 <li>系统调用需要借助中断的作用在用户态和内核态之间转换，在此之中需要保存与恢复用户进程上下文。</li>
 </ul>
   </div>
+  
+  <script>
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        var x = document.getElementById("con");
+        x.style.margin="25px 2%";
+        var ex = document.getElementsByTagName("h3");
+        for (var t = 0;t < ex.length;t++)
+        {
+          ex[t].style.width = "100%";
+        }
+      }
+    </script>
 
 </body>
 </html>
