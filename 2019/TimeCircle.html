@@ -46,7 +46,7 @@ make              // 编译 Linux 内核
 qemu-system-i386 -kernel arch/x86/boot/bzImage</code></pre>        
       </li>
      </ol>
-     <p><img src="img/run1.png" alt="实验结果"></p>
+     <p class="cen_img"><img src="img/run1.png" alt="实验结果"></p>
      <h3>二、编写时间片轮转模拟程序</h3>
      <ol start="1"><li>mypcb.h</li></ol>
      <pre><code><div><span>// 线程最大数目            </span>
@@ -81,9 +81,9 @@ qemu-system-i386 -kernel arch/x86/boot/bzImage</code></pre>
 <ul>
 <li>创建 0 号进程，初始化相关变量，其中 task[pid].task_entry = task[pid].thread.ip = (unsigned long)my_process; 为设置该进程的入口函数；</li>
 <li>利用循环体复制 0 号进程的内存内容，以尾插法方式构造如图所示进程链表；<br>
-<img src="img/processLink.png" alt=""></li>
+<p class="cen_img"><img src="img/processLink.png" alt=""></p></li>
 <li>使用嵌入汇编启动 0 号进程，首先将 esp 指向 0 号进程栈基址，然后 eip 指向 0 号进程入口，即 process 函数指针的位置，即可开始执行 0 号进程；<br>
-<img src="img/asmStart.png" alt=""></li>
+<p class="cen_img"><img src="img/asmStart.png" alt=""></p></li>
 </ul>
 </li>
 </ol>
@@ -177,7 +177,7 @@ qemu-system-i386 -kernel arch/x86/boot/bzImage</code></pre>
 <li>定义当前进程指针 prev 和下一个进程指针 next；</li>
 <li>判断接下来的进程是否可以运行，不可运行则函数结束；</li>
 <li>利用嵌入式汇编交换内核中进程栈内容；其中上一个进程的 ebp , esp , eip 内容保存在该进程的栈中，然后当前的 ebp , esp , eip 指向下一个进程栈对应位置，并开始运行；<br>
-<img src="img/switch.png" alt=""></li>
+<p class="cen_img"><img src="img/switch.png" alt=""></p></li>
 </ul>
 </li>
 </ol>
@@ -223,7 +223,7 @@ qemu-system-i386 -kernel arch/x86/boot/bzImage</code></pre>
 make                
 qemu-system-i386 -kernel arch/x86/boot/bzImage        
 </code></pre>
-<p><img src="img/change.png" alt=""></p>
+<p class="cen_img"><img src="img/change.png" alt=""></p>
 <h3>四、总结</h3>
 <ul>
 <li>要使程序在操作系统上执行，需要创建对应的进程。每个进程都有自己独立的信息，包括进程号，进程状态，进程栈等。操作系统会首先创建 0 号进程当做所有进程的父进程，，进行全局资源分配及进程调度；</li>

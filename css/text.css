@@ -25,8 +25,22 @@ h3{
 	border-bottom:1px solid lightgray;
 }
 
+h4{  
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Helvetica, STKaiti, SimSun, serif;
+  color:#6c6c6c;
+	width:50%;
+}
+
 p{  
   line-height:1.8;
+}
+
+.cen_img{  
+    text-align:center;
+}
+
+img{  
+   border-radius:5px; 
 }
 
 code {
