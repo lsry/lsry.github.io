@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>系统调用分析</title>
+  <meta charset="utf-8" />
+  <link href="../css/text.css" rel="stylesheet">
+  <link rel="shortcut icon" href="../img/lsry.png">
+
+</head>
+<body>
+  <div id="con" class="inner">
+    <h2>Linux 内核分析——系统调用</h2>
+<p>学号：196<br>
+原创作品转载请注明出处 + https://github.com/mengning/linuxkernel/</p>
+<h3>〇、系统调用</h3>
+<p>系统调用是操作系统为用户态进程与硬件设备进行交互提供了一组接口，用户可以利用该组接口使用系统的功能，而不必考虑与本身软件之外的事情。</p>
+<p>对于 Linux 系统，系统调用经历了哪些步骤，现在通过 gdb 跟踪代码来分析一下。</p>
+<h3 id="%E4%B8%80%E3%80%81%E5%AE%9E%E9%AA%8C%E5%87%86%E5%A4%87">一、实验准备</h3>
+<h4 id="1-linux-501-%E5%86%85%E6%A0%B8">1. Linux-5.0.1 内核</h4>
+<ul>
+<li>
+<p>首先创建工作目录 mykernel , 在该目录下将Linux-5.0.1内核下载到该目录下，解压；</p>
+<pre><code>  mkdir mykernel     
+  wget https://kernel.org/pub/kernel/v5.x/linux-5.0.1.tar.gz     
+  tar -zxvf linux-5.0.1.tar.gz
+</code></pre>
+</li>
+<li>
+<p>进入 linux-5.0.1 目录下，使用如下命令配置；</p>
+<pre><code>  // 配置内核              
+  sudo arch/x86/configs/x86_64_defconfig               
+  // 打开内核编译调试          
+  sudo make menuconfig      
+  //kernel hacking ----&gt;        
+  //   compile-time checks compiler options ----&gt;    
+  //      [*] compile the kernel with debug info     
+</code></pre>
+</li>
+</ul>
+<p><img src="img/debugInfo.png" alt=""></p>
+<ul>
+<li>使用 make 命令编译内核</li>
+</ul>
+<h4 id="2-%E5%AE%89%E8%A3%85-qemu">2. 安装 qemu</h4>
+<pre><code>sudo apt-get qemu               
+</code></pre>
+<h4 id="3-%E5%AE%89%E8%A3%85-menuos">3. 安装 menuOS</h4>
+<pre><code>git clone https://github.com/mengning/menu.git       
+</code></pre>
+<h3 id="%E4%BA%8C%E3%80%81%E6%89%A7%E8%A1%8C-96-%E5%8F%B7%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">二、执行 96 号系统调用</h3>
+<h4 id="1-%E5%9C%A8-menu-%E4%B8%AD%E6%B7%BB%E5%8A%A0%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">1. 在 menu 中添加系统调用</h4>
+<ul>
+<li>
+<p>查找 Linux-5.0.1/arch/x86/entry/syscalls/syscall_32.tbl , 得到对应系统调用函数如下：</p>
+<pre><code>96	i386	getpriority		sys_getpriority			__ia32_sys_getpriority               
+</code></pre>
+</li>
+<li>
+<p>修改 menu/test.c , 添加如下所示的功能函数；</p>
+<pre><code>  int GetPriority(int argc, char *argv[]){
+      int who;
+      who = getpid();
+      int prio = 0;
+      prio = getpriority(PRIO_USER, who);
+      printf(&quot;current process priority: %d-%d-%d\n&quot;,PRIO_USER,who,prio);
+      return 0;
+  }
+  int GetPriorityAsm(int argc, char *argv[]){
+      int which = PRIO_USER;
+      int who;
+      who = getpid();
+      int prio = 0;
+      asm volatile(
+          &quot;movl %0,%%ebx\n\t&quot;
+          &quot;movl %1,%%ecx\n\t&quot;
+          &quot;movl $0x60,%%eax\n\t&quot; 
+          &quot;int $0x80\n\t&quot; 
+          &quot;movl %%eax,%2\n\t&quot;
+          : &quot;+m&quot; (which), &quot;+m&quot; (who), &quot;+m&quot; (prio)
+      );
+      printf(&quot;current process priority: %d-%d-%d\n&quot;,PRIO_USER,who,prio);
+      return 0;		
+  }
+</code></pre>
+</li>
+<li>
+<p>修改 test.c 中的 main , 添加上述两个方法的调用；</p>
+<pre><code>  MenuConfig(&quot;priority&quot;,&quot;show prioity of process&quot;,GetPriority);
+  MenuConfig(&quot;priority-asm&quot;,&quot;show prioity of process&quot; GetPriorityAsm);                
+</code></pre>
+</li>
+<li>
+<p>执行 make rootfs 命令，制作根文件系统；</p>
+</li>
+<li>
+<p>执行menu os ,</p>
+<pre><code>   sudo ../bin/qemu-system-x86_64 -kernel linux-5.0.1/arch/x86_64/boot/bzImage -initrd rootfs.img     
+</code></pre>
+</li>
+</ul>
+<p><img src="img/priority.png" alt=""></p>
+<h4 id="2-%E8%B7%9F%E8%B8%AA%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">2. 跟踪系统调用</h4>
+<ul>
+<li>
+<p>使用如下命令开启menu os ;</p>
+<pre><code>  sudo ../bin/qemu-system-x86_64 -kernel linux-5.0.1/arch/x86_64/boot/bzImage -initrd rootfs.img -s -S -append nokaslr
+</code></pre>
+</li>
+<li>
+<p>新建命令行窗口，在 mykernel 工作目录下，使用 gdb ；</p>
+</li>
+<li>
+<p>使用 file linux-5.0.1/vmlinux 加载符号表；</p>
+</li>
+<li>
+<p>使用 target remote:1234 连接 menu，开始调试；</p>
+</li>
+<li>
+<p>用 b __ia32_sys_getpriority 加载断点 ，然后执行程序。在 menu 中运行 priority 命令，即可执行对应系统调用，且发生中断，如下图所示，可以发现 getpriority 在 kernel/sys.c 中有定义；<br>
+<img src="img/gdbCon.png" alt=""></p>
+</li>
+<li>
+<p>接着在 gdb 中逐步执行 n 或 s 命令，跟踪代码的运行情况。可以追踪到 arch/x86/entry/common.c 和 arch/x86/entry/entry_64_compat.S 两个文件，其中 common.c 执行系统调用函数，entry_64_compat.S 中进行用户态和内核态的切换，保存进程上下文和恢复进程上下文的工作；<br>
+<img src="img/com_entry.png" alt=""></p>
+</li>
+</ul>
+<h4 id="3-%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8%E5%88%86%E6%9E%90">3 系统调用分析</h4>
+<ul>
+<li>
+<p>首先在用户程序执行系统调用函数 getpriority ，然后发生中断，进入 arch/x86/entry/entry_64_compat.S 中的 ENTRY(entry_SYSCALL_compat) 系统调用入口，由用户态进入内核态。然后保存用户堆栈的一些内容，包括当前和用户程序有关的寄存器内容，该部分存放于结构体 pt_regs 中， 具体定义在 arch/x86/include/asm/ptrace.h 中。</p>
+<pre><code>  struct pt_regs {
+      unsigned long bx; unsigned long cx; 
+      unsigned long dx; unsigned long si;
+      unsigned long di; unsigned long bp;
+      unsigned long ax; unsigned short ds;
+      unsigned short __dsh; unsigned short es;
+      unsigned short __esh; unsigned short fs;
+      unsigned short __fsh; unsigned short gs;
+      unsigned short __gsh; unsigned long orig_ax;
+      unsigned long ip; unsigned short cs;
+      unsigned short __csh; unsigned long flags;
+      unsigned long sp; unsigned short ss;
+      unsigned short __ssh; unsigned long r15;
+      unsigned long r14; unsigned long r13;
+      unsigned long r12; unsigned long bp;
+      unsigned long bx; unsigned long r11;
+      unsigned long r10; unsigned long r9;
+      unsigned long r8; unsigned long ax;
+      unsigned long cx; unsigned long dx;
+      unsigned long si; unsigned long di;
+      unsigned long orig_ax; unsigned long ip;
+      unsigned long cs; unsigned long flags;
+      unsigned long sp;unsigned long ss;
+  };                  
+</code></pre>
+</li>
+<li>
+<p>接着在该段汇编代码中，保存用户进程相应寄存器的值，包括用户进程数据段指针，首地址，代码段指针及首地址，标志寄存器的值等，此外将一些寄存器值赋值为0；</p>
+<pre><code>  pushq	$__USER32_DS		/* pt_regs-&gt;ss */
+  pushq	%r8			/* pt_regs-&gt;sp */
+  pushq	%r11			/* pt_regs-&gt;flags */
+  pushq	$__USER32_CS		/* pt_regs-&gt;cs */
+  pushq	%rcx			/* pt_regs-&gt;ip */
+  GLOBAL(entry_SYSCALL_compat_after_hwframe)
+  movl	%eax, %eax		/* discard orig_ax high bits */
+  pushq	%rax			/* pt_regs-&gt;orig_ax */
+  pushq	%rdi			/* pt_regs-&gt;di */
+  pushq	%rsi			/* pt_regs-&gt;si */
+  xorl	%esi, %esi		/* nospec   si */
+  pushq	%rdx			/* pt_regs-&gt;dx */
+  xorl	%edx, %edx		/* nospec   dx */
+  pushq	%rbp			/* pt_regs-&gt;cx (stashed in bp) */
+  xorl	%ecx, %ecx		/* nospec   cx */
+  pushq	$-ENOSYS		/* pt_regs-&gt;ax */
+  pushq   $0			/* pt_regs-&gt;r8  = 0 */
+  xorl	%r8d, %r8d		/* nospec   r8 */
+  pushq   $0			/* pt_regs-&gt;r9  = 0 */
+  xorl	%r9d, %r9d		/* nospec   r9 */
+  pushq   $0			/* pt_regs-&gt;r10 = 0 */
+  xorl	%r10d, %r10d		/* nospec   r10 */
+  pushq   $0			/* pt_regs-&gt;r11 = 0 */
+  xorl	%r11d, %r11d		/* nospec   r11 */
+  pushq   %rbx                    /* pt_regs-&gt;rbx */
+  xorl	%ebx, %ebx		/* nospec   rbx */
+  pushq   %rbp                    /* pt_regs-&gt;rbp (will be overwritten) */
+  xorl	%ebp, %ebp		/* nospec   rbp */
+  pushq   $0			/* pt_regs-&gt;r12 = 0 */
+  xorl	%r12d, %r12d		/* nospec   r12 */
+  pushq   $0			/* pt_regs-&gt;r13 = 0 */
+  xorl	%r13d, %r13d		/* nospec   r13 */
+  pushq   $0			/* pt_regs-&gt;r14 = 0 */
+  xorl	%r14d, %r14d		/* nospec   r14 */
+  pushq   $0			/* pt_regs-&gt;r15 = 0 */
+  xorl	%r15d, %r15d		/* nospec   r15 */     
+</code></pre>
+</li>
+<li>
+<p>保存现场完之后，用 call do_fast_syscall_32 进入 arch/x86/entry/common.c 中的 do_fast_syscall_32 函数，执行系统调用；</p>
+</li>
+<li>
+<p>在 do_fast_syscall_32 中先做一些准备工作，设置寄存器值，然后进入do_syscall_32_irqs_on(regs) 开始执行系统调用；</p>
+</li>
+<li>
+<p>根据 regs-&gt; orig_ax 获得系统调用号，查找系统调用表，执行对应函数，结束后返回，关键代码如下：</p>
+<pre><code>  unsigned int nr = (unsigned int)regs-&gt;orig_ax;   
+  regs-&gt;ax = ia32_sys_call_table[nr](
+  	(unsigned int)regs-&gt;bx, (unsigned int)regs-&gt;cx,
+  	(unsigned int)regs-&gt;dx, (unsigned int)regs-&gt;si,
+  	(unsigned int)regs-&gt;di, (unsigned int)regs-&gt;bp);  
+</code></pre>
+</li>
+<li>
+<p>在上述函数执行完成后，最后回到 ENTRY(entry_SYSCALL_compat) 中，恢复现场，并由内核态回到用户态；</p>
+<pre><code>  STACKLEAK_ERASE
+  TRACE_IRQS_ON			/* User mode traces as IRQs on. */
+  movq	RBX(%rsp), %rbx		/* pt_regs-&gt;rbx */
+  movq	RBP(%rsp), %rbp		/* pt_regs-&gt;rbp */
+  movq	EFLAGS(%rsp), %r11	/* pt_regs-&gt;flags (in r11) */
+  movq	RIP(%rsp), %rcx		/* pt_regs-&gt;ip (in rcx) */
+  addq	$RAX, %rsp		/* Skip r8-r15 */
+  popq	%rax			/* pt_regs-&gt;rax */
+  popq	%rdx			/* Skip pt_regs-&gt;cx */
+  popq	%rdx			/* pt_regs-&gt;dx */
+  popq	%rsi			/* pt_regs-&gt;si */
+  popq	%rdi			/* pt_regs-&gt;di */   
+  movq	RSP-ORIG_RAX(%rsp), %rsp   
+  SWITCH_TO_USER_CR3_NOSTACK scratch_reg=%r8 scratch_reg2=%r9
+  xorl	%r8d, %r8d
+  xorl	%r9d, %r9d
+  xorl	%r10d, %r10d             
+  swapgs             
+</code></pre>
+</li>
+<li>
+<p>系统调用总体流程如下：<br>
+<img src="img/sys_call.png" alt=""></p>
+</li>
+</ul>
+<h3 id="%E6%80%BB%E7%BB%93">总结</h3>
+<ul>
+<li>Linux 的系统调用是一个复杂的过程，系统调用是封装了一大堆内部操作，而只向用户提供简单的 API，即可完成很复杂的功能。</li>
+<li>系统调用需要借助中断的作用在用户态和内核态之间转换，在此之中需要保存与恢复用户进程上下文。</li>
+</ul>
+  </div>
+
+</body>
+</html>
