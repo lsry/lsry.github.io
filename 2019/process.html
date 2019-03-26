@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>进程和程序</title>
+  <meta charset="utf-8" />
+  <link href="../css/text.css" rel="stylesheet">
+  <link rel="shortcut icon" href="../img/lsry.png">
+</head>
+<body>
+  <div id="con" class="inner">
+    <h2>Linux内核分析——进程和程序</h2>
+<p>学号：196<br>
+原创作品转载请注明出处 + <a href="https://github.com/mengning/linuxkernel/">https://github.com/mengning/linuxkernel/</a></p>
+<h3>一、进程描述符</h3>
+<p>Linux 的进程描述符在 linux/include/linux/sched.h 文件中定义的名为 task_struct 的结构体（以 linux-5.0.1 内核为例，以下相同）。该结构体内容庞大繁杂，包含了一系列和进程运行相关的内容。</p>
+<ol>
+<li>
+<p>部分描述进程的底层信息</p>
+<pre><code> #ifdef CONFIG_THREAD_INFO_IN_TASK
+     struct thread_info		thread_info;
+ #endif 
+</code></pre>
+</li>
+<li>
+<p>指向内存部分的指针</p>
+<pre><code> void *stack;         // 内核栈指针
+ struct mm_struct *mm, *active_mm; // 指向进程地址空间
+ unsigned int ptrace; // 系统调用相关   
+</code></pre>
+</li>
+<li>
+<p>进程本身信息</p>
+<pre><code> /* -1 unrunnable, 0 runnable, &gt;0 stopped: 进程状态 **/
+ volatile long state;
+ unsigned int flags;  // 进程状态标志
+ /** 进程退出 */
+ int exit_state; int exit_code; int exit_signal;
+ /** 进程标识号 */
+ pid_t pid; pid_t tgid;
+ struct pid *thread_pid;
+ struct hlist_node pid_links[PIDTYPE_MAX];
+
+ /** 用于通知LSM是否被do_execve()函数所调用 */
+ unsigned in_execve:1;
+
+ /** 在执行do_fork()时，如果给定特别标志，则vfork_done会指向一个特殊地址*/
+ struct completion *vfork_done;
+ /* CLONE_CHILD_SETTID: */
+ int __user *set_child_tid;
+ /* CLONE_CHILD_CLEARTID: */
+ int __user *clear_child_tid;
+</code></pre>
+</li>
+<li>
+<p>进程调度</p>
+<pre><code> /* 进程调度优先级 **/
+ int prio, static_prio, normal_prio;
+ unsigned int rt_priority; // 实时进程的优先级
+ const struct sched_class *sched_class; // 进程调度类
+ struct sched_entity se; // 普通进程调度实体
+ struct sched_rt_entity rt; // 实时进程调度实体
+ unsigned int policy;      // 调度策略       
+</code></pre>
+</li>
+<li>
+<p>进程链表</p>
+<pre><code> struct list_head tasks, children, sibling;
+ struct task_struct *group_leader;
+</code></pre>
+</li>
+<li>
+<p>文件系统</p>
+<pre><code> /* Filesystem information: */
+ struct fs_struct *fs;
+ /* Open file information: */
+ struct files_struct *files;
+</code></pre>
+</li>
+<li>
+<p>中断</p>
+<pre><code> #ifdef CONFIG_TRACE_IRQFLAGS
+     unsigned int irq_events;
+     unsigned long hardirq_enable_ip;
+     unsigned long hardirq_disable_ip;
+     unsigned int hardirq_enable_event;
+     unsigned int hardirq_disable_event;
+     int hardirqs_enabled;
+     int hardirq_context;
+     unsigned long softirq_disable_ip;
+     unsigned long softirq_enable_ip;
+     unsigned int softirq_disable_event;
+     unsigned int softirq_enable_event;
+     int softirqs_enabled;
+     int softirq_context;
+ #endif
+</code></pre>
+</li>
+</ol>
+<p>其他的还包括对进程通信，内存管理，死锁检测和设备管理等相关部分。可看到进程是操作系统基本组成部分，是资源分配、调度，设备管理的基本单位，在操作系统运行中发挥重要的作用。</p>
+<h3>二、fork 调用</h3>
+<h4>1. do_fork</h4>
+<p>该函数位于 linux/kernel/fork.c 中，是 fork 系统调用进行进程创建的关键函数。函数声明如下所示：</p>
+<pre><code>long _do_fork(unsigned long clone_flags,unsigned long stack_start,unsigned long stack_size,int __user *parent_tidptr,int __user *child_tidptr,unsigned long tls)  
+</code></pre>
+<ul>
+<li>
+<p>1.1 参数介绍：<br>
+unsigned long clone_flags： 进程克隆标志，<br>
+unsigned long stack_start：进程栈起始指针；<br>
+unsigned long stack_size：进程栈大小；<br>
+int __user *parent_tidptr, __user *child_tidptr：分别指向父子进程</p>
+</li>
+<li>
+<p>1.2 过程：</p>
+<ul>
+<li>
+<p>首先根据克隆标志判断当前进程是否可被跟踪debug，当可以被跟踪的情况下，设置跟踪等级，决定当前进程可以上报给跟踪进程的信号；</p>
+<pre><code>if (!(clone_flags &amp; CLONE_UNTRACED)) {
+      if (clone_flags &amp; CLONE_VFORK)
+              trace = PTRACE_EVENT_VFORK;
+      else if ((clone_flags &amp; CSIGNAL) != SIGCHLD)
+              trace = PTRACE_EVENT_CLONE;
+      else
+              trace = PTRACE_EVENT_FORK;
+      if (likely(!ptrace_event_enabled(current, trace)))
+              trace = 0;
+ }
+</code></pre>
+</li>
+<li>
+<p>调用copy_process()函数（linux/kernel/fork.c）复制进程描述符及为子进程复制父进程内容。如果所有必须的资源都是可用的，则该函数返回刚创建的task_struct描述符的地址；具体内容有 检查各种标志位、调用dup_task_struct复制一份task_struct结构体，作为子进程的进程描述符、检查进程的数量限制、初始化定时器、信号和自旋锁、初始化与调度有关的数据结构，调用了sched_fork，这里将子进程的state设置为TASK_RUNNING、复制所有的进程信息，包括fs、信号处理函数、信号、内存空间（包括写时复制）等、调用copy_thread，这又是关键的一步，这里设置了子进程的堆栈信息、为子进程分配一个pid、设置子进程与其他进程的关系，以及pid、tgid等；</p>
+<pre><code>  p = copy_process(clone_flags, stack_start, stack_size,
+   child_tidptr, NULL, trace, tls, NUMA_NO_NODE);  
+</code></pre>
+</li>
+<li>
+<p>由于该函数返回 pid, 利用以下代码获得新进程的 pid ；</p>
+<pre><code>  pid = get_task_pid(p, PIDTYPE_PID);
+  nr = pid_vnr(pid);         
+</code></pre>
+</li>
+<li>
+<p>根据克隆标志 CLONE_PARENT_SETTID，表示复制进程和创建该复制进程的有同一个父进程；</p>
+<pre><code>  if (clone_flags &amp; CLONE_PARENT_SETTID)
+      put_user(nr, parent_tidptr);     
+</code></pre>
+</li>
+<li>
+<p>根据克隆标志 CLONE_VFORK ，代表在复制进程运行结束，释放空间后，会唤醒父进程；因此把父进程插入等待队列，并挂起父进程直到子进程释放自己的内存地址空间 ；</p>
+<pre><code>  if (clone_flags &amp; CLONE_VFORK) {
+      p-&gt;vfork_done = &amp;vfork;
+      init_completion(&amp;vfork);
+      get_task_struct(p);
+  }
+</code></pre>
+</li>
+<li>
+<p>唤醒复制进程；</p>
+<pre><code>  wake_up_new_task(p);        
+</code></pre>
+</li>
+<li>
+<p>如果有跟踪者，则告诉跟踪者复制进程准备开始运行，并且将相关信息告诉跟踪者；</p>
+<pre><code>  if (unlikely(trace))
+      ptrace_event_pid(trace, pid);
+  if (clone_flags &amp; CLONE_VFORK) {
+      if (!wait_for_vfork_done(p, &amp;vfork))
+          ptrace_event_pid(PTRACE_EVENT_VFORK_DONE, pid);
+  }
+</code></pre>
+</li>
+<li>
+<p>最后将复制进程加入进程链表，并返回 pid 号；</p>
+<pre><code>  put_pid(pid);
+  return nr;        
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<h4>2. gdb 跟踪 fork</h4>
+<ol>
+<li>
+<p>利用 <a href="https://github.com/mengning/menu">menu os</a> 在 test.c 文件中添加使用 fork 系统调用的函数；</p>
+<pre><code> int testFork(int argc, char *argv[]){
+     pid_t fpid; 
+     int count=0;  
+     fpid=fork();   
+     if (fpid &lt; 0)   
+         printf(&quot;error in fork!&quot;);   
+     else if (fpid == 0) {  
+         printf(&quot;i am the child process, my process id is %d\n&quot;,getpid());        
+         count++;  
+     }  
+     else {  
+         printf(&quot;i am the parent process, my process id is %d\n&quot;,getpid());   
+         count++;  
+     }  
+     printf(&quot;result: %d\n&quot;,count);  
+     return 0;  
+ }   
+</code></pre>
+</li>
+<li>
+<p>在 menu 目录下使用 make rootfs 生成文件系统， 然后使用qemu、重新挂载内核，文件系统；</p>
+<pre><code> sudo ../bin/qemu-system-x86_64 -kernel linux-5.0.1/arch/x86_64/boot/bzImage -initrd rootfs.img -s -S -append nokaslr 
+</code></pre>
+</li>
+</ol>
+<p class="cen_img"><img src="img/fork_menu.png" alt=""></p>
+<ol start="3">
+<li>
+<p>新建一个 shell 窗口，用 gdb 调试该 fork 调用；用以下命令在可能运行的函数处添加断点，跟踪fork执行过程；</p>
+<pre><code> b __ia32_sys_fork
+ b _do_fork     
+ b sys_clone  
+ b ret_from_fork 
+ b copy_process         
+</code></pre>
+</li>
+</ol>
+<p class="cen_img"><img src="img/fork_break.png" alt=""></p>
+<ol start="4">
+<li>以下为fork的调用过程：
+<ul>
+<li>
+<p>首先在 linux-5.0.1/arch/x86/entry/entry_64.S 中的 ENTRY(interrupt_entry) 处发生中断调用，将 ss , sp , eflags, cs , ip , arigin_ax, return_address 等寄存器的值保存在栈中，从用户态进入到内核态，进行系统调用，之后回到用户态，寄存器出栈，返回值；</p>
+</li>
+<li>
+<p>进入 linux-5.0.1/arch/x86/entry/entry_compat_64.S 中的 ENTRY(entry_SYSCALL_compat) ，将一些寄存器值入栈，然后调用系统调用处理函数，执行完后，寄存器出栈返回；</p>
+</li>
+<li>
+<p>进入 linux-5.0.1/arch/x86/entry/common.c 中do_fast_syscall_32 处理函数，执行一些准备工作后，进入do_syscall_32_irqs_on(regs) ，根据系统调用号，查找到 fork 调用，执行对应的调用函数；</p>
+</li>
+<li>
+<p>在 linux-5.0.1/kernel/fork.c 中执行fork，最终执行 do_fork;</p>
+</li>
+<li>
+<p>do_fork 中调用 copy_process 对子进程进行分配内存，并执行；</p>
+</li>
+<li>
+<p>在 copy_process 中：</p>
+<pre><code>       // 复制父进程进程描述符内容，并返回进程描述符   
+       struct task_struct *p;    
+       p = dup_task_struct(current, node);   
+       // 对子进程栈进行初始化      
+       retval = copy_thread_tls(clone_flags, stack_start, stack_size, p, tls);          
+</code></pre>
+</li>
+<li>
+<p>在 linux-5.0.1/arch/x86/kernel/process_64.c 中 copy_thread_tls ：</p>
+<pre><code>       // 该句将返回地址置为 ret_from_fork , 因此子进程是从ret_from_fork 开始执行
+       frame-&gt;ret_addr = (unsigned long) ret_from_fork;
+       // 初始化相关寄存器  
+       frame-&gt;bx = 0;     
+       *childregs = *current_pt_regs();         
+       childregs-&gt;ax = 0;  // 导致 fork 函数返回 0       
+</code></pre>
+</li>
+<li>
+<p>linux-5.0.1/arch/x86/kernel/entry_64.S 中的 ret_from_fork</p>
+<pre><code>       ENTRY(ret_from_fork)
+           UNWIND_HINT_EMPTY
+           movq %rax, %rdi
+           call schedule_tail /* rdi: 'prev' task parameter */
+           testq %rbx, %rbx /* from kernel_thread? */
+           jnz 1f /* kernel threads are uncommon */
+         2:
+           UNWIND_HINT_REGS
+           movq %rsp, %rdi
+           call syscall_return_slowpath /* returns with IRQs disabled */
+           TRACE_IRQS_ON /* user mode is traced as IRQS on */
+           jmp swapgs_restore_regs_and_return_to_usermode
+         1:
+           /* kernel thread */
+           UNWIND_HINT_EMPTY
+           movq	%r12, %rdi
+           CALL_NOSPEC %rbx
+           movq	$0, RAX(%rsp)
+           jmp	2b
+       END(ret_from_fork)
+</code></pre>
+</li>
+</ul>
+</li>
+</ol>
+<h3>三、编译链接的过程和ELF可执行文件格式</h3>
+<h4>1. 概念</h4>
+<ul>
+<li>1.1 ELF 文件
+<blockquote>
+<p>在计算机科学中，是一种用于二进制文件、可执行文件、目标代码、共享库和核心转储格式文件;<br>
+ELF有四种不同的类型:  可重定位文件、可执行文件、共享对象文件、核心转储文件。<br>
+通过 man elf 命令可查看 elf 文件详细内容。</p>
+</blockquote>
+</li>
+</ul>
+<p class="cen_img"><img src="img/elf.png" alt=""></p>
+<ul>
+<li>
+<p>1.2 动态链接</p>
+<blockquote>
+<p>动态链接，在可执行文件装载时或运行时，由操作系统的装载程序加载库。</p>
+</blockquote>
+</li>
+<li>
+<p>1.3 静态链接</p>
+<blockquote>
+<p>静态链接是由链接器在链接时将库的内容加入到可执行程序中的做法。</p>
+</blockquote>
+</li>
+<li>
+<p>1.4 编译链接过程<br>
+源文件 -&gt; 预处理 -&gt; 编译 -&gt; 汇编 -&gt; 链接 -&gt; 可执行文件</p>
+</li>
+</ul>
+<h4>2. exec 调用</h4>
+<ul>
+<li>2.1 使用 execve 库函数加载一个可执行文件
+<ul>
+<li>
+<p>execve 函数如下定义：</p>
+<pre><code>#include &lt;unistd.h&gt;
+int execve(const char *filename, char *const argv[],
+          char *const envp[]);          
+</code></pre>
+<p>filename：可执行文件名<br>
+argv: 执行参数<br>
+envp: 参数序列，一般来说他是一种键值对的形式 key=value. 作为我们是新程序的环境</p>
+</li>
+<li>
+<p>编写调用 execve 的程序：</p>
+<pre><code>int testExecve(int argc, char *argv[]){    
+    execve(&quot;./hello&quot;,NULL,NULL);
+    execve(&quot;time&quot;,NULL,NULL);
+}
+</code></pre>
+</li>
+<li>
+<p>将其添加到 menu 中的 test.c 文件，并重新编译执行，得到结果，并且用 gdb 跟踪得到：</p>
+<pre><code>// 在 execve 等执行函数处打断点      
+b sys_execve
+b __do_execve_file  
+b do_execveat_common        
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<p class="cen_img"><img src="img/menu_execve.png" alt=""><br>
+<img src="img/execve_break.png" alt=""></p>
+<ul>
+<li>2.2 execve 处理过程
+<ul>
+<li>
+<p>execve 的调用处理最终都归结到 linux-5.0.1/fs/exec.c 文件中的 __do_execve_file 函数，声明如下：</p>
+<pre><code>static int __do_execve_file(int fd, struct filename *filename, struct user_arg_ptr argv, struct user_arg_ptr envp, int flags, struct file *file)    
+// fd : 文件号       
+// filename: 文件名称
+// argv：执行参数        
+// envp: 新程序执行环境参数     
+// file：可执行文件具体内容          
+</code></pre>
+</li>
+<li>
+<p>函数功能及部分代码如下：</p>
+<pre><code>// 判断文件存在性
+if (IS_ERR(filename))
+return PTR_ERR(filename);           
+// 复制一份文件表；           
+retval = prepare_bprm_creds(bprm);        
+// 在堆上为文件分配相应空间；
+bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);    
+// 查找并打开二进制文件      
+if (!file)
+file = do_open_execat(fd, filename, flags);   
+// 等待 CPU 调度来执行该二进制文件      
+sched_exec();       
+// 当CPU准备好之后，为该文件执行过程
+// 初始化二进制文件描述结构体 linux_binprm    
+bprm-&gt;file = file;       
+if (!filename) {
+bprm-&gt;filename = &quot;none&quot;;     
+} else if (fd == AT_FDCWD || filename-&gt;name[0] == '/0'){          bprm-&gt;filename = filename-&gt;name;        
+} else {        
+    if (filename-&gt;name[0] == '\0')
+	pathbuf = kasprintf(GFP_KERNEL, &quot;/dev/fd/%d&quot;, fd);
+else
+	pathbuf = kasprintf(GFP_KERNEL, &quot;/dev/fd/%d/%s&quot;,  fd, filename-&gt;name);
+if (!pathbuf) {
+	retval = -ENOMEM;
+	goto out_unmark;
+}
+if (close_on_exec(fd, rcu_dereference_raw(current-&gt;files-&gt;fdt)))
+	bprm-&gt;interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
+bprm-&gt;filename = pathbuf;       
+}
+bprm-&gt;interp = bprm-&gt;filename;      
+// 创建进程的内存地址空间    
+retval = bprm_mm_init(bprm);          
+// 填充 linux_binrpm 中的参数     
+retval = prepare_arg_pages(bprm, argv, envp);   
+// 检查该二进制文件的可执行权限   
+retval = prepare_binprm(bprm);   
+// 从内核空间获取二进制文件的路径名称      
+retval = copy_strings_kernel(1, &amp;bprm-&gt;filename, bprm);  
+// 调用copy_string()从用户空间拷贝环境变量及命令 
+retval = copy_strings(bprm-&gt;envc, envp, bprm);   
+//  调用copy_string()从用户空间拷贝命令行参数
+retval = copy_strings(bprm-&gt;argc, argv, bprm);  
+// 以上已经打开了二进制可执行文件
+
+// 最终执行该二进制文件
+retval = exec_binprm(bprm);
+
+// 后半部分为执行成功的收尾工作  
+...
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<h3>四、进程调度</h3>
+<h4>1. 进程调度的时机</h4>
+<ul>
+<li>当进程发生系统调用时，会产生中断，通过中断处理程序，发生进程被动调度，调用 schedule() ；</li>
+<li>特殊的进程——内核线程，可以主动发生进程调度，直接调用 sechedule(), 或者发生中断，在中断处理过程中对进程进行调度；</li>
+</ul>
+<h4>2. 跟踪 schedule()</h4>
+<ul>
+<li>在 schedule 处打断点，然后跟踪：</li>
+</ul>
+<p class="cen_img"><img src="img/schedule_break.png" alt=""></p>
+<ul>
+<li>
+<p>通过打断点，跟踪到 schedule() 出现在 linux-5.0.1/kernel/core.c 中，该函数中，阻止进程被抢占，然后调用 _schedule() 函数执行进程调度；</p>
+</li>
+<li>
+<p>在 linux-5.0.1/kernel/core.c 中的 _schedule(bool preempt) 中根据处理器获得进程的就绪队列，加锁，屏蔽中断信号，然后获得当前进程描述符 prev 和接下来运行的进程描述符 next，然后交换跟踪者所跟踪的进程为 next , 并且交换进程上下文；</p>
+<pre><code>  trace_sched_switch(preempt, prev, next);
+  rq = context_switch(rq, prev, next, &amp;rf);        
+</code></pre>
+</li>
+<li>
+<p>接下来跟踪 context_switch , 该函数主要交换两个进程的线性区 ；</p>
+<pre><code>  struct mm_struct *mm, *oldmm;
+  mm = next-&gt;mm;
+  oldmm = prev-&gt;active_mm;
+  ...
+  switch_mm_irqs_off(oldmm, mm, next);
+  /* Here we just switch the register state and the stack. */
+  switch_to(prev, next, prev);         
+</code></pre>
+</li>
+<li>
+<p>之后是 arch/x86/include/asm/switch_to.h 中的 switch_to, 交换寄存器和进程栈；</p>
+<pre><code>  // 获得下一个进程的 sp    
+  READ_ONCE(*(unsigned char *)next-&gt;thread.sp);       
+</code></pre>
+</li>
+<li>
+<p>在 arch/x86/entry/entry_64.S 中用汇编代码编写，来交换两个进程的栈</p>
+<pre><code>  /*  %rdi: 当前进程栈，%rsi: next task ：下一个进程栈 */
+  ENTRY(__switch_to_asm)
+      UNWIND_HINT_FUNC
+          /* 将当前寄存器值压栈 */
+          pushq	%rbp
+          pushq	%rbx
+          pushq	%r12
+          pushq	%r13
+          pushq	%r14
+          pushq	%r15
+          /* 交换进程栈指针 */
+          movq	%rsp, TASK_threadsp(%rdi)  // 将当前进程 sp 值放到本进程栈中   
+          movq	TASK_threadsp(%rsi), %rsp  // 让 sp 指向下一个进程栈地址 
+          ...
+          /* 从下一个进程栈中取出上次因为调度而保存的寄存器值 */
+          popq	%r15
+          popq	%r14
+          popq	%r13
+          popq	%r12
+          popq	%rbx
+          popq	%rbp
+          jmp	__switch_to
+  END(__switch_to_asm)               
+</code></pre>
+</li>
+<li>
+<p>接着 arch/x86/kernel/process_64.h 中的 __switch_to 中交换段寄存器的内容；</p>
+<pre><code>  savesegment(es, prev-&gt;es);  
+  savesegment(ds, prev-&gt;ds);       
+</code></pre>
+</li>
+<li>
+<p>最后调用其他函数完结整个进程调度过程；</p>
+</li>
+</ul>
+<h3>五、总结</h3>
+<ol>
+<li>进程是操作系统中的基本运行单位，是操作系统体现其功能的载体，因此为了体现进程功能的繁多，进程描述符包含了非常详实的内容，涵盖了进程生命周期的各个方面；</li>
+<li>操作系统创建新的进程通过执行 fork 调用，分配相应的内存区域，复制父进程的内容，并加入到操作系统进程的执行队列，等待操作系统执行进程调度，从而开始运行新的进程；</li>
+<li>可执行程序可被其它程序通过 execve 系统调用运行，从文件系统中发现相应文件，对其进行解析，根据内容创建新的就绪进程，从而调用该程序；</li>
+<li>操作系统的进程调度是一个复杂的过程，在发生中断、系统调用、或是内核线程主动调用对应函数时发生。这个过程要交换进程的线性区、进程栈内容、相应寄存器内容。</li>
+</ol>
+<h3>参考</h3>
+<p>[1] Linux-进程描述符 task_struct 详解: <a href="https://www.cnblogs.com/JohnABC/p/9084750.html">https://www.cnblogs.com/JohnABC/p/9084750.html</a></p>
+<p>[2] 进程的创建 , do_fork()函数详解: <a href="https://blog.csdn.net/yunsongice/article/details/5508242">https://blog.csdn.net/yunsongice/article/details/5508242</a></p>
+<p>[3] Linux下进程的创建过程分析: <a href="https://blog.csdn.net/gatieme/article/details/51569932">https://blog.csdn.net/gatieme/article/details/51569932</a></p>
+<p>[4] Linux进程启动过程分析do_execve: <a href="https://blog.csdn.net/gatieme/article/details/51594439">https://blog.csdn.net/gatieme/article/details/51594439</a></p>
+  </div>
+
+  <script>
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        var x = document.getElementById("con");
+        x.style.margin="25px 2%";
+        var ex = document.getElementsByTagName("h3");
+        for (var t = 0;t < ex.length;t++)
+        {
+          ex[t].style.width = "100%";
+        }
+      }
+    </script>
+</body>
+</html>
