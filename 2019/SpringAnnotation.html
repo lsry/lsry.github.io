@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh_CN">
+<head>
+  <title>Spring 注解</title>
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+  <link href="../css/text.css" rel="stylesheet">
+  <link rel="shortcut icon" href="../img/lsry.png">
+</head>
+<body>
+  <div id="con" class="inner">
+    <h2>Spring-boot 项目注解分层</h2>
+<h3>一、 ProjectNameApplication</h3>
+<ul>
+<li><strong>@SpringBootApplication</strong>：标识java项目的主类，定义搜索spring组件的顶层包，由@EnableAutoConfiguration，@ComponentScan,@Configuration 三个注解组成。
+<ol>
+<li>@EnableAutoConfiguration： 帮助SpringBoot应用将所有符合条件的@Configuration配置都加载到当前SpringBoot创建并使用的IoC容器</li>
+<li>@ComponentScan：扫描项目，将符合的 bean 都加载到 IoC 容器中</li>
+<li>@Configuration: 允许从上下文中注册 bean，当标记在类上时，为spring添加新的配置。</li>
+</ol>
+</li>
+</ul>
+<h3>二、Controller</h3>
+<ul>
+<li>
+<p><strong>@Controller</strong>：用于标记在一个类上，使用它标记的类就是一个SpringMvc Controller对象，分发处理器会扫描使用该注解的类的方法，并检测该方法是否使用了@RequestMapping注解。</p>
+</li>
+<li>
+<p><strong>@RestController</strong>：相当于@ResponseBody ＋ @Controller合在一起的作用，则Controller中的方法无法返回jsp页面，或者html，配置的视图解析器，此外，InternalResourceViewResolver不起作用，返回的内容就是Return 里的内容。</p>
+</li>
+<li>
+<p><strong>@ResponseBody</strong> 将方法返回值添加到响应正文中</p>
+</li>
+<li>
+<p><strong>@RequestMapping</strong>：用来处理请求地址映射的注解，可用于类或方法上。用于类上，表示类中的所有响应请求的方法都是以该地址作为父路径</p>
+</li>
+<li>
+<p><strong>@GetMapping</strong>：相当于@RequestMapping(method = RequestMethod.GET)的缩写</p>
+</li>
+<li>
+<p><strong>@PostMapping</strong></p>
+</li>
+<li>
+<p>注：Http 请求方式：</p>
+<ol>
+<li>GET：请求指定的页面信息，并返回实体主体。</li>
+<li>HEAD：类似于get请求，只不过返回的响应中没有具体的内容，用于获取报头</li>
+<li>POST：向指定资源提交数据进行处理请求（例如提交表单或者上传文件）。数据被包含在请求体中。POST请求可能会导致新的资源的建立和/或已有资源的修改。</li>
+<li>PUT：从客户端向服务器传送的数据取代指定的文档的内容。</li>
+<li>DELETE：请求服务器删除指定的页面。</li>
+<li>CONNECT：HTTP/1.1协议中预留给能够将连接改为管道方式的代理服务器。</li>
+<li>OPTIONS：允许客户端查看服务器的性能。</li>
+<li>TRACE：回显服务器收到的请求，主要用于测试或诊断。</li>
+</ol>
+</li>
+</ul>
+<h3>三、Service</h3>
+<ul>
+<li>
+<p><strong>@Service</strong>：将自动注册到Spring容器，不需要再在applicationContext.xml文件定义bean了, spring容器中的bean进行实例化，也就是等同于new操作。</p>
+<ol>
+<li>其getBean的默认名称是类名（头字母小写），可以@Service(“xxxx”)这样来指定，</li>
+<li>其定义的bean默认是单例的，可以使用@Service(“beanName”) @Scope(“prototype”)来改变。</li>
+<li>可以通过@PostConstruct和@PreDestroy指定初始化方法和销毁方法（方法名任意）</li>
+</ol>
+</li>
+<li>
+<p><strong>@Transactional</strong>：由spring处理，来保证事务的原子性，即是方法里面对数据库操作，如果失败则spring负责回滚操作，成功则提交操作。其中事物的四个特性如下：</p>
+<ul>
+<li>原子性：对数据进行操作的时候，要么全都执行，要么全都不执行。</li>
+<li>一致性：和原子性是分不开的，事务执行成功，说明全部都执行了，那么就使数据库从一个一致性状态变到另一个一致性状了。</li>
+<li>隔离性： 一个事务的执行不能被其他事务干扰</li>
+<li>持续性： 事务一旦提交成功，那么数据库里的数据就会永久性的改变。</li>
+</ul>
+</li>
+<li>
+<p><strong>@Async</strong>：异步方法；这些方法将在执行的时候，将会在独立的线程中被执行，调用者无需等待它的完成，即可继续其他的操作。</p>
+</li>
+</ul>
+<h3>四、方法参数</h3>
+<ul>
+<li>
+<p><strong>@Validated</strong>：校验数据，如果数据异常则会统一抛出异常，方便异常中心统一处理</p>
+</li>
+<li>
+<p><strong>@RequestBody</strong> 用来接收前端传递给后端的json字符串中的数据的(请求体中的数据的) ，通过复杂对象的Get/Set方法设置对应的属性。前端不能使用GET方式提交数据，而是用POST方式进行提交，最多只能有一个。</p>
+</li>
+<li>
+<p><strong>@RequestParam(XXX)</strong>：接收请求头中对应的参数，通常用于GET请求。</p>
+</li>
+<li>
+<p><strong>@PathVariable</strong>：接收请求路径中占位符的值</p>
+</li>
+</ul>
+<h3>五、DI</h3>
+<ul>
+<li><strong>@Autowired</strong>：对类成员变量、方法及构造函数进行标注，完成自动装配的工作, 在IoC容器自动查找需要的bean，并装配给该对象的属性。如果查询结果刚好为一个，就将该bean装配给@Autowired指定的数据。如果查询的结果不止一个，那么@Autowired会根据名称来查找。如果查询的结果为空，那么会抛出异常。解决方法时，使用required=false</li>
+</ul>
+<h3>六、AOP</h3>
+<ul>
+<li>
+<p><strong>@Aspect</strong>：注解在类上，定义切面，不会被 Spring 当做组件 bean，被增强处理。</p>
+</li>
+<li>
+<p><strong>@Pointcut</strong> 定义切入点，从而在增强处理中重用切点表达式。</p>
+</li>
+<li>
+<p><strong>@Before</strong>：在目标方法执行前进行增强处理</p>
+</li>
+<li>
+<p><strong>@AfterReturning</strong>：在目标方法完成后植入，可访问到目标方法的返回值，但不可更改。</p>
+</li>
+<li>
+<p><strong>@AfterThrowing</strong>：处理程序中未处理的异常。</p>
+</li>
+<li>
+<p><strong>@After</strong>：不管目标方法如何结束（正常返回，遇到异常），都会被植入，</p>
+</li>
+<li>
+<p><strong>@Around</strong>：可在目标代码之前或后面植入增强动作，可决定目标方法在什么时候，如何执行，也可阻止目标方法执行。可改变目标方法参数，返回值。需要在线程安全的情况下。</p>
+</li>
+</ul>
+
+  </div>
+
+  <script>
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        var x = document.getElementById("con");
+        x.style.margin="25px 2%";
+        var ex = document.getElementsByTagName("h3");
+        for (var t = 0;t < ex.length;t++)
+        {
+          ex[t].style.width = "100%";
+        }
+      }
+    </script>
+</body>
+</html>
