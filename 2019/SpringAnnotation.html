@@ -120,6 +120,26 @@
 </li>
 </ul>
 
+  
+  <div id="" class="" style="height:100px">
+    
+  </div>
+  <div id="container"></div>
+  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
+  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+  <script>
+    var gitment = new Gitment({
+      id: 'SpringAnnotation', // 可选。默认为 当前页面地址，选择为标题名称
+      owner: 'lsry',
+      repo: 'lsry.github.io',
+      oauth: {
+        client_id: '189b60b1b54ae3d722fd',
+        client_secret: '53d7f18d62c907b95664a122e98cfea63142a1f2',
+      },
+    })
+    gitment.render('container')
+  </script>
+
   </div>
 
   <script>
