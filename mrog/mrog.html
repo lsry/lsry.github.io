@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="cms-Hans">
+  <head>
+    <meta charset="UTF-8">
+    <title>微语</title>
+    <link rel="shortcut icon" href="../img/lsry.png">
+    <style>
+      *{  
+        margin:0;
+        padding:0;
+      }
+      body {
+        font-size: 16px;
+      }
+      #mrogs {
+        margin: 20px 10%;
+      }
+      #mrog {
+        margin: 5px 30px;
+        border: 1px gray solid;
+        padding: 0 20px;
+      }
+      #text {
+        margin: 5px 0;
+      }
+      div>p {
+        text-indent: 2em;
+      }
+      #time {
+        text-align:right;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="mrogs"></div>
+    <script type="text/javascript" src="mrog.js"></script>
+    <script type="text/javascript">
+      let em = document.getElementById("mrogs");
+      for (const mrog of mrogs) {
+        let mrog_contain = document.createElement("div");
+        mrog_contain.id = "mrog";
+        let content = document.createElement('div');
+        content.innerHTML = mrog.content;
+        content.id = "text";
+        mrog_contain.appendChild(content);
+        let time = document.createElement('p');
+        time.innerText = mrog.time;
+        time.id = "time";
+        mrog_contain.appendChild(time);
+        em.appendChild(mrog_contain);
+      }
+    </script>
+  </body>
+</html>
