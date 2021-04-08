@@ -46,7 +46,8 @@
         content.id = "text";
         mrog_contain.appendChild(content);
         let time = document.createElement('p');
-        time.innerText = mrog.time;
+        let date = new Date(parseInt(mrog.time));
+        time.innerText = date.toLocaleDateString();
         time.id = "time";
         mrog_contain.appendChild(time);
         em.appendChild(mrog_contain);
