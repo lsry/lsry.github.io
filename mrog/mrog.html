@@ -42,12 +42,13 @@
         let mrog_contain = document.createElement("div");
         mrog_contain.id = "mrog";
         let content = document.createElement('div');
-        content.innerHTML = mrog.content;
+        content.innerHTML = mrog.text;
         content.id = "text";
         mrog_contain.appendChild(content);
         let time = document.createElement('p');
-        let date = new Date(parseInt(mrog.time));
-        time.innerText = date.toLocaleDateString();
+        // toJSON 会转到格林威治时间，需要转换时区
+        let date = new Date(parseInt(mrog.time) - (new Date().getTimezoneOffset()) * 60 * 1000);
+        time.innerText = date.toJSON().substr(0,10);
         time.id = "time";
         mrog_contain.appendChild(time);
         em.appendChild(mrog_contain);
