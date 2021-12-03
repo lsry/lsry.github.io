@@ -1,5 +1,10 @@
 let mrogs = [
   {
+    time: "1638544206790",
+    text: "<p>maven version 3.8.1 强制仓库URL为 https 前缀的，否则会导致'Blocked mirror for repository' 错误，之后相关 jar 包无法下载。</p>\
+           <p>记录的原因在于此问题在 maven release notes 中提到。谨记相关软件升级出现问题，需要首先到软件升级说明中查找。</p>"
+  },
+  {
     time:"1635434889367",
     text:"<p>被分片库坑的几点：</p>\
           <p>1. 查询时没有指定片键或片键为空</p>\
