@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <link href="../css/text.css" rel="stylesheet">
   <link rel="shortcut icon" href="../img/lsry.png">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <div id="con" class="inner">
@@ -231,18 +231,6 @@ qemu-system-i386 -kernel arch/x86/boot/bzImage
 <li>进程切换时需要保存当前进程上下文于进程栈中，然后将指令寄存器和栈寄存器的值指向下一个进程栈中内容，然后开始执行下一个进程；</li>
 </ul>
   </div>
-  
-  <script>
-      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
-        var x = document.getElementById("con");
-        x.style.margin="25px 2%";
-        var ex = document.getElementsByTagName("h3");
-        for (var t = 0;t < ex.length;t++)
-        {
-          ex[t].style.width = "100%";
-        }
-      }
-    </script>
 
 </body>
 </html>

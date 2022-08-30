@@ -1,62 +1,58 @@
 <!DOCTYPE html>
 <html lang="cms-Hans">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>首页</title>
-    <!-- 引入 Bootstrap -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/my.css" rel="stylesheet">
-	  <link rel="shortcut icon" href="img/lsry.png">
-	  <!-- jQuery (Bootstrap 的 JavaScript 插件需要引入 jQuery) -->
-    <script src="js/jquery-3.2.1.min.js"></script>
-    <!-- 包括所有已编译的插件 -->
-    <script src="js/bootstrap-3.3.7.min.js"></script>
-  </head>
-  <body>
-    <header>
-      <div id="" class="">
-        <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
-      </div>
-      <div id="" class="btn-area">
-        <a href="#">联系</a>
-        <a href="#">归档</a>
-        <a href="#">文片</a>
-        <a href="mrog/mrog.html">微语</a>
-      </div>
-	  </header>
-     
-    <ul id="con" class="con">
-      <li><a class="lia" href="2019/SpringAnnotation.html">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>首页</title>
+  <!-- 引入 Bootstrap -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/my.css" rel="stylesheet">
+  <link rel="shortcut icon" href="img/lsry.png">
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <a href="#"><img class="tit" src="img/font.png" width="142px" height="35px" alt="星之裂愿"></a>
+    </div>
+    <div class="menu">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <ul class="links">
+      <li><a href="mrog/mrog.html">微语</a></li>
+      <li><a href="#">文片</a></li>
+      <li><a href="#">归档</a></li>
+      <li><a href="#">联系</a></li>
+    </ul>
+  </header>
+
+  <ul id="con" class="con">
+    <li>
+      <a class="item" href="2019/SpringAnnotation.html">
         <span>Spring-boot 项目注解分层</span><span class="date">2019/08/17</span>
-      </a></li>
-      <li><a class="lia" href="2019/process.html">
+      </a>
+    </li>
+    <li>
+      <a class="item" href="2019/process.html">
         <span>进程和程序</span><span class="date">2019/03/26</span>
-      </a></li>
-      <li><a class="lia" href="2019/SystemCall.html">
+      </a>
+    </li>
+    <li><a class="item" href="2019/SystemCall.html">
         <span>系统调用分析</span><span class="date">2019/03/19</span>
       </a></li>
-      <li><a class="lia" href="2019/TimeCircle.html">
+    <li><a class="item" href="2019/TimeCircle.html">
         <span>时间片轮转模拟程序</span><span class="date">2019/03/11</span>
       </a></li>
-      <li><a class="lia" href="2017/TalkGame.html">
+    <li><a class="item" href="2017/TalkGame.html">
         <span>九月的故事</span><span class="date">2017/09/27</span>
       </a></li>
-    </ul>
-    
-    <footer>Copyright © 2017 - 2022 lsry, All Rights Reserved</footer>
+  </ul>
 
-    <!-- 检查使用设备来改变布局 -->
-    <script>
-      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
-        var x = document.getElementById("con");
-        x.style.margin="20px 1%";
-        for(var i = 0; i < x.children.length ; i++){
-           var  obj  =  x.children[i];
-           obj.style.padding="5px 10px";
-        }
-      }
-    </script>
-  </body>
+  <footer>Copyright © 2017 - 2022 lsry, All Rights Reserved</footer>
+</body>
+
 </html>
