@@ -13,7 +13,7 @@ body {
 
 .inner {
   margin: 25px auto;
-  width: 960px;
+  width: 970px;
   border: 1px solid lightgray;
   border-radius: 20px;
   padding: 50px;
@@ -87,9 +87,9 @@ pre {
     font-size: 16px;
   }
   .inner {
+    box-sizing: border-box;
     width: 100%;
     padding: 50px 20px;
-    box-sizing: border-box;
   }
   html {
     font-size: 20px;
