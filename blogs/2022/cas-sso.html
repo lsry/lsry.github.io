@@ -69,23 +69,23 @@
 <p>當用戶登錄信息在認證服務中失效，沒什麽好的辦法讓其在應用服務中同時失效。如果認證服務逐個通知應用服務，這樣數據量增大，同時也增加了系統複雜度，維護困難。最好的方法是讓應用服務主動失效，因此應用服務設計時需要將對應的 cookie 有效期設置低於認證服務中的有效期。</p>
 <h3>五、總結</h3>
 <p>單點登錄簡化了用戶登錄過程，提升了用戶體驗。這些内部複雜的訪問過程，完全不需要用戶過度參與。信息系統大概就是對自動化，透明化的極緻追求吧。</p>
- </div>
 
- <div id="gitalk-container"></div>
-  <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
-  <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
-  <script>
-    var gitalk = new Gitalk({
-      clientID: '189b60b1b54ae3d722fd',
-      clientSecret: '53d7f18d62c907b95664a122e98cfea63142a1f2',
-      repo: 'lsry.github.io',
-      owner: 'lsry',
-      admin: ['lsry'],
-      id: 'sso_cas_discuss',      // Ensure uniqueness and length less than 50
-      distractionFreeMode: false  // Facebook-like distraction free mode
-    })
+    <div id="gitalk-container"></div>
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+      var gitalk = new Gitalk({
+        clientID: '189b60b1b54ae3d722fd',
+        clientSecret: '53d7f18d62c907b95664a122e98cfea63142a1f2',
+        repo: 'lsry.github.io',
+        owner: 'lsry',
+        admin: ['lsry'],
+        id: 'sso_cas_discuss',      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
 
-    gitalk.render('gitalk-container')
-  </script>
+      gitalk.render('gitalk-container')
+    </script>
+  </div>
 </body>
 </html>
