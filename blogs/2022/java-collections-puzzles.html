@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Java 集合題目</title>
+  <link href="../../css/text.css" rel="stylesheet">
+  <link href="../../css/code.css" rel="stylesheet">
+  <link rel="shortcut icon" href="../../img/lsry.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+  <div class="inner">
+    <h2>Java 集合題目解析</h2>
+    <h3>一、簡介</h3>
+    <p><a href="https://inside.java/2022/10/13/java-collections-puzzlers/">這裏</a>提供了一些有關 Java
+      集合框架相關的題目，具有一定的代表性，值得記錄下來，以此作爲引導深入學習有關集合框架的相關知識。</p>
+    <h3>二、題目</h3>
+    <h4>1. Arrays.asList 和 contains</h4>
+    <pre class="hljs pre-code"><code><div>String[] stringArray = {<span class="hljs-string">"one"</span>, <span class="hljs-string">"two"</span>, <span class="hljs-string">"three"</span>};
+<span class="hljs-keyword">var</span> stringList = Arrays.asList(stringArray);
+
+<span class="hljs-keyword">int</span>[] intArray = {<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>};
+<span class="hljs-keyword">var</span> intList = Arrays.asList(intArray);
+
+System.out.print(stringList.contains(<span class="hljs-string">"one"</span>) + <span class="hljs-string">", "</span>);
+System.out.println(intList.contains(<span class="hljs-number">1</span>));
+</div></code></pre>
+    <p><strong>輸出</strong>：<code>true, false</code><br>
+      <strong>解析</strong>：asList 的汎型參數 T 為引用類型，因此其方法參數為引用類型數組，String 是引用類型，因此 stringList 内部保存的底層數組爲
+      <code>String[]{&quot;one&quot;, &quot;two&quot;, &quot;three&quot;}</code>，因此可以遍歷到字符串
+      <code>&quot;one&quot;</code>,返回 <code>true</code>。但是 <code>int</code> 并不是引用類型，而 <code>int[]</code> 是 引用類型，asList
+      的實參對應的是 int[] 的單個元素，因此 intList 其中包含的底層數組為 <code>int[][]{int[]{1, 2, 3}}</code>，其中只有一個元素，和 1 不相等而返回 false。
+    </p>
+    <h4>2. subList</h4>
+    <pre class="hljs pre-code"><code><div><span class="hljs-keyword">var</span> ints = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;(List.of(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>));
+<span class="hljs-keyword">var</span> subList = ints.subList(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+
+System.out.print(subList + <span class="hljs-string">" "</span>);
+
+subList.addAll(List.of(<span class="hljs-number">10</span>, <span class="hljs-number">11</span>, <span class="hljs-number">12</span>));
+System.out.print(ints);
+</div></code></pre>
+    <p><strong>輸出</strong>：<code>[] [10, 11, 12, 1, 2, 3, 4, 5]</code><br>
+      <strong>解析</strong>：subList 只是底層 List 的視圖，持有原集合的引用，并不重新生成新的數組存放元素，其參數只是限定範文範圍。當修改操作發生是，會對底層數組產生影響。其 addAll 源碼如下：
+    </p>
+    <pre class="hljs pre-code"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">addAll</span><span class="hljs-params">(<span class="hljs-keyword">int</span> index, Collection&lt;? extends E&gt; c)</span> </span>{
+    <span class="hljs-comment">// 部分省略</span>
+    root.addAll(offset + index, c);
+    updateSizeAndModCount(cSize);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+}
+</div></code></pre>
+    <p>其中 root 為底層 List 的引用，調用對應的方法實現。</p>
+    <h4>3. null in List</h4>
+    <pre class="hljs pre-code"><code><div>String[] ints = {<span class="hljs-string">"a"</span>, <span class="hljs-string">"b"</span>, <span class="hljs-string">"c"</span>, <span class="hljs-keyword">null</span>};
+        
+<span class="hljs-keyword">var</span> strings1 = Stream.of(ints).toList();
+System.out.print(strings1.size());
+
+<span class="hljs-keyword">var</span> strings2 = List.of(ints);
+System.out.print(strings2.size());
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>4Exception in thread &quot;main&quot; java.lang.NullPointerException</code><br>
+      <strong>解析：</strong> <code>Stream.toList()</code> 創建普通的集合，可以接受空值，但是 <code>List.of</code> 創建
+      <code>Unmodifiable Lists</code>，拒絕空值。
+    </p>
+    <p><code>Unmodifiable Lists</code> 特性如下：</p>
+    <ul>
+      <li>集合不可變，不能添加，修改，刪除元素，其對應的操作會產生 <code>UnsupportedOperationException</code>。如果元素的屬性本身可以修改，則可以進行操作。</li>
+      <li>添加 null 會產出 <code>NullPointerException</code>。</li>
+      <li>在所有元素可序列化情況下，集合可以序列化，符合序列化規範。</li>
+      <li>集合中元素的順序和構建時傳入的參數順序相同。</li>
+      <li>集合和其視圖實現了 <code>RandomAccess</code> 接口。</li>
+      <li>應該把集合視爲值類型集合，不能用於同步操作。</li>
+    </ul>
+    <h4>4. Arrays.asList().remove</h4>
+    <pre class="hljs pre-code"><code><div>String[] ints = {<span class="hljs-string">"a"</span>, <span class="hljs-string">"b"</span>, <span class="hljs-string">"c"</span>, <span class="hljs-keyword">null</span>};
+List&lt;String&gt; strings = Arrays.asList(ints);
+strings.removeIf(Objects::isNull);
+System.out.print(strings.size());
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>UnsupportedOperationException</code><br>
+      <strong>解析：</strong> 使用 Arrays.asList 創建的是不可修改的集合，不支持添加，修改，刪除等操作，對應的方法并沒有實現，繼承的 AbstractList 的方法，其實現為抛出
+      <code>UnsupportedOperationException</code>。
+    </p>
+    <h4 id="5-mapputkey-null">5. Map.put(key, null)</h4>
+    <pre class="hljs"><code><div>Map&lt;Integer, String&gt; map = <span class="hljs-keyword">new</span> HashMap&lt;&gt;();
+map.put(<span class="hljs-number">4</span>, <span class="hljs-keyword">null</span>);
+System.out.print(map.getOrDefault(<span class="hljs-number">4</span>, <span class="hljs-string">"four"</span>));
+map.putIfAbsent(<span class="hljs-number">4</span>, <span class="hljs-string">"four"</span>);
+System.out.print(map.get(<span class="hljs-number">4</span>));
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>null four</code><br>
+      <strong>解析：</strong>
+    </p>
+    <pre class="hljs pre-code"><code><div><span class="hljs-comment">// Map</span>
+<span class="hljs-function"><span class="hljs-keyword">default</span> V <span class="hljs-title">getOrDefault</span><span class="hljs-params">(Object key, V defaultValue)</span> </span>{
+    V v;
+    <span class="hljs-keyword">return</span> (((v = get(key)) != <span class="hljs-keyword">null</span>) || containsKey(key))
+        ? v
+        : defaultValue;
+}
+<span class="hljs-comment">// HashMap</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> V <span class="hljs-title">getOrDefault</span><span class="hljs-params">(Object key, V defaultValue)</span> </span>{
+    Node&lt;K,V&gt; e;
+    <span class="hljs-keyword">return</span> (e = getNode(key)) == <span class="hljs-keyword">null</span> ? defaultValue : e.value;
+}
+</div></code></pre>
+    <p>從上述兩個 getOrDefault 方法實現來看，返回原值取決於 key 對應的結點 Entry 存在。儘管原值可能為 null，Entry 不存在才返回新值。</p>
+    <pre class="hljs pre-code"><code><div><span class="hljs-comment">// Map</span>
+<span class="hljs-function"><span class="hljs-keyword">default</span> V <span class="hljs-title">putIfAbsent</span><span class="hljs-params">(K key, V value)</span> </span>{
+    V v = get(key);
+    <span class="hljs-keyword">if</span> (v == <span class="hljs-keyword">null</span>) {
+        v = put(key, value);
+    }
+    <span class="hljs-keyword">return</span> v;
+}
+<span class="hljs-comment">// HashMap</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> V <span class="hljs-title">putIfAbsent</span><span class="hljs-params">(K key, V value)</span> </span>{
+    <span class="hljs-keyword">return</span> putVal(hash(key), key, value, <span class="hljs-keyword">true</span>, <span class="hljs-keyword">true</span>);
+}
+<span class="hljs-function"><span class="hljs-keyword">final</span> V <span class="hljs-title">putVal</span><span class="hljs-params">(<span class="hljs-keyword">int</span> hash, K key, V value, 
+                <span class="hljs-keyword">boolean</span> onlyIfAbsent, <span class="hljs-keyword">boolean</span> evict)</span> </span>{
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; <span class="hljs-keyword">int</span> n, i;
+    <span class="hljs-keyword">if</span> ((tab = table) == <span class="hljs-keyword">null</span> || (n = tab.length) == <span class="hljs-number">0</span>)
+        n = (tab = resize()).length;
+    <span class="hljs-keyword">if</span> ((p = tab[i = (n - <span class="hljs-number">1</span>) &amp; hash]) == <span class="hljs-keyword">null</span>)
+        tab[i] = newNode(hash, key, value, <span class="hljs-keyword">null</span>);
+    <span class="hljs-keyword">else</span> {
+        Node&lt;K,V&gt; e; K k;
+        <span class="hljs-keyword">if</span> (p.hash == hash &amp;&amp;
+            ((k = p.key) == key || (key != <span class="hljs-keyword">null</span> &amp;&amp; key.equals(k))))
+            e = p;
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (p <span class="hljs-keyword">instanceof</span> TreeNode)
+            e = ((TreeNode&lt;K,V&gt;)p).putTreeVal(<span class="hljs-keyword">this</span>, tab, hash, key, value);
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> binCount = <span class="hljs-number">0</span>; ; ++binCount) {
+                <span class="hljs-keyword">if</span> ((e = p.next) == <span class="hljs-keyword">null</span>) {
+                    p.next = newNode(hash, key, value, <span class="hljs-keyword">null</span>);
+                    <span class="hljs-keyword">if</span> (binCount &gt;= TREEIFY_THRESHOLD - <span class="hljs-number">1</span>) <span class="hljs-comment">// -1 for 1st</span>
+                        treeifyBin(tab, hash);
+                    <span class="hljs-keyword">break</span>;
+                }
+                <span class="hljs-keyword">if</span> (e.hash == hash &amp;&amp;
+                    ((k = e.key) == key || (key != <span class="hljs-keyword">null</span> &amp;&amp; key.equals(k))))
+                    <span class="hljs-keyword">break</span>;
+                p = e;
+            }
+        }
+        <span class="hljs-keyword">if</span> (e != <span class="hljs-keyword">null</span>) { <span class="hljs-comment">// existing mapping for key</span>
+            V oldValue = e.value;
+            <span class="hljs-keyword">if</span> (!onlyIfAbsent || oldValue == <span class="hljs-keyword">null</span>)
+                e.value = value;
+            afterNodeAccess(e);
+            <span class="hljs-keyword">return</span> oldValue;
+        }
+    }
+    ++modCount;
+    <span class="hljs-keyword">if</span> (++size &gt; threshold)
+        resize();
+    afterNodeInsertion(evict);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;
+}
+</div></code></pre>
+    <p>從上述兩個 putIfAbsent 方法實現來看，節點不存在或者儘管節點存在，但是當原值為 null 時還會把新值替換進去。</p>
+    <h4>6. Map.pustIfAbsent 返回值</h4>
+    <pre class="hljs pre-code"><code><div><span class="hljs-keyword">var</span> numbers = List.of(-<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+Map&lt;Integer, List&lt;Integer&gt;&gt; map = <span class="hljs-keyword">new</span> HashMap&lt;&gt;();
+numbers.forEach(number -&gt;  {
+    map.putIfAbsent(number, <span class="hljs-keyword">new</span> ArrayList&lt;&gt;()).add(number);
+});
+System.out.print(map.get(<span class="hljs-number">0</span>));
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>java.lang.NullPointerException</code><br>
+      <strong>解析：</strong> putIfAbsent 代碼如上一題所示，該方法返回了舊值，如果 key 不存在則返回 null。對於 put 前綴的方法均遵循上述慣例。如果要返回當前值，應該換用
+      computedIfAbsent。
+    </p>
+    <h4 id="7-mapcomouteifabsent">7. Map.comouteIfAbsent</h4>
+    <pre class="hljs"><code><div><span class="hljs-keyword">var</span> numbers = List.of(-<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+Map&lt;Integer, List&lt;Integer&gt;&gt; map = <span class="hljs-keyword">new</span> HashMap&lt;&gt;();
+numbers.forEach(number -&gt;  {
+    map.computeIfAbsent(number, ArrayList::<span class="hljs-keyword">new</span>).add(number);
+});
+System.out.print(map.get(<span class="hljs-number">0</span>));
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>java.lang.IllegalArgumentException: Illegal Capacity: -1</code><br>
+      <strong>解析：</strong> computeIfAbsent 當 key 不存在時，將 key 傳給 mappingFunction，計算新值。此時 mappingFunction 對應的函數為
+      ArrayList::new，其不接受容量為負值，因此抛出對應的異常。具體代碼如下。
+    </p>
+    <pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> V <span class="hljs-title">computeIfAbsent</span><span class="hljs-params">(K key, 
+       Function&lt;? <span class="hljs-keyword">super</span> K, ? extends V&gt; mappingFunction)</span> </span>{
+    <span class="hljs-comment">// 省略</span>
+    V v = mappingFunction.apply(key);
+    <span class="hljs-comment">// 省略</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">ArrayList</span><span class="hljs-params">(<span class="hljs-keyword">int</span> initialCapacity)</span> </span>{
+    <span class="hljs-keyword">if</span> (initialCapacity &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">this</span>.elementData = <span class="hljs-keyword">new</span> Object[initialCapacity];
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (initialCapacity == <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">this</span>.elementData = EMPTY_ELEMENTDATA;
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Illegal Capacity: "</span>+
+                                            initialCapacity);
+    }
+}
+</div></code></pre>
+    <h4>8. TreeSet 和 HashSet</h4>
+    <pre class="hljs pre-code"><code><div>Set&lt;String&gt; hashSet = <span class="hljs-keyword">new</span> HashSet&lt;&gt;(List.of(<span class="hljs-string">"a"</span>, <span class="hljs-string">"b"</span>, <span class="hljs-string">"c"</span>));
+Set&lt;String&gt; treeSet = <span class="hljs-keyword">new</span> TreeSet&lt;&gt;(String.CASE_INSENSITIVE_ORDER);
+
+treeSet.addAll(List.of(<span class="hljs-string">"A"</span>, <span class="hljs-string">"B"</span>, <span class="hljs-string">"C"</span>));
+
+System.out.print(treeSet.equals(hashSet) + <span class="hljs-string">" "</span>);
+System.out.print(hashSet.equals(treeSet));
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>true false</code><br>
+      <strong>解析：</strong> 由於 TreeSet 傳入了 String.CASE_INSENSITIVE_ORDER，其作用為忽略大小寫，在 TreeSet.contains 比較中使用了該比較器來尋找
+      key，代碼如下。因此 hashSet 中元素和 treeSet 中相等，但是 hashSet 并沒有此功能，因此 返回 false。
+    </p>
+    <pre class="hljs"><code><div><span class="hljs-comment">// TreeMap</span>
+<span class="hljs-function"><span class="hljs-keyword">final</span> Entry&lt;K,V&gt; <span class="hljs-title">getEntryUsingComparator</span><span class="hljs-params">(Object key)</span> </span>{
+    <span class="hljs-meta">@SuppressWarnings</span>(<span class="hljs-string">"unchecked"</span>)
+    K k = (K) key;
+    Comparator&lt;? <span class="hljs-keyword">super</span> K&gt; cpr = comparator;
+    <span class="hljs-keyword">if</span> (cpr != <span class="hljs-keyword">null</span>) {
+        Entry&lt;K,V&gt; p = root;
+        <span class="hljs-keyword">while</span> (p != <span class="hljs-keyword">null</span>) {
+            <span class="hljs-keyword">int</span> cmp = cpr.compare(k, p.key);
+            <span class="hljs-keyword">if</span> (cmp &lt; <span class="hljs-number">0</span>)
+                p = p.left;
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (cmp &gt; <span class="hljs-number">0</span>)
+                p = p.right;
+            <span class="hljs-keyword">else</span>
+                <span class="hljs-keyword">return</span> p;
+        }
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;
+}
+</div></code></pre>
+    <h4>9. IdentityHashMap</h4>
+    <pre class="hljs pre-code"><code><div><span class="hljs-keyword">var</span> map = <span class="hljs-keyword">new</span> IdentityHashMap&lt;Integer, String&gt;();
+map.put(<span class="hljs-number">1</span>, <span class="hljs-string">"one"</span>);
+map.put(<span class="hljs-number">10</span>, <span class="hljs-string">"ten"</span>);
+map.put(<span class="hljs-number">100</span>, <span class="hljs-string">"hundred"</span>);
+map.put(<span class="hljs-number">1000</span>, <span class="hljs-string">"thousand"</span>);
+map.put(<span class="hljs-number">1</span>, <span class="hljs-string">"one again"</span>);
+map.put(<span class="hljs-number">10</span>, <span class="hljs-string">"ten again"</span>);
+map.put(<span class="hljs-number">100</span>, <span class="hljs-string">"hundred again"</span>);
+map.put(<span class="hljs-number">1000</span>, <span class="hljs-string">"thousand again"</span>);
+System.out.println(map.size());
+</div></code></pre>
+    <p><strong>輸出：</strong> 5<br>
+      <strong>解析：</strong> IdentityHashMap 使用引用相等（==）而不是 equals 方法來比較 key 的相等性。由於在默認情況下系統内部緩存了 -128 ~ 127 的整數值，因此
+      1，10，100 三個 key 對應的 value 會被替換，但是兩個 1000 并不相等，後一個被添加到 map 中，因此總共有 5 個元素。
+    </p>
+    <pre class="hljs"><code><div><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IntegerCache</span> </span>{
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> low = -<span class="hljs-number">128</span>;
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> high;
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Integer[] cache;
+    <span class="hljs-keyword">static</span> Integer[] archivedCache;
+
+    <span class="hljs-keyword">static</span> {
+        <span class="hljs-comment">// high value may be configured by property</span>
+        <span class="hljs-keyword">int</span> h = <span class="hljs-number">127</span>;
+        String integerCacheHighPropValue =
+            VM.getSavedProperty(<span class="hljs-string">"java.lang.Integer.IntegerCache.high"</span>);
+        <span class="hljs-keyword">if</span> (integerCacheHighPropValue != <span class="hljs-keyword">null</span>) {
+            <span class="hljs-keyword">try</span> {
+                h = Math.max(parseInt(integerCacheHighPropValue), <span class="hljs-number">127</span>);
+                <span class="hljs-comment">// Maximum array size is Integer.MAX_VALUE</span>
+                h = Math.min(h, Integer.MAX_VALUE - (-low) -<span class="hljs-number">1</span>);
+            } <span class="hljs-keyword">catch</span>( NumberFormatException nfe) {
+                <span class="hljs-comment">// If the property cannot be parsed into an int, ignore it.</span>
+            }
+        }
+        high = h;
+    }
+}
+</div></code></pre>
+    <p>如上代碼所示，Integer 緩存的最小值固定為 -128，最大值可以在程序運行時通過添加執行參數 <code>-XX:AutoBoxCacheMax=2000</code> 調節，但是設置的值不能小於
+      127，讓結果發生變化。</p>
+    <h4>10. LinkedHashMap</h4>
+    <pre class="hljs pre-code"><code><div>Map&lt;String, Integer&gt; map = LinkedHashMap.newLinkedHashMap(<span class="hljs-number">3</span>);
+map.put(<span class="hljs-string">"a"</span>, <span class="hljs-number">1</span>);
+map.put(<span class="hljs-string">"b"</span>, <span class="hljs-number">2</span>);
+map.put(<span class="hljs-string">"c"</span>, <span class="hljs-number">3</span>);
+map.put(<span class="hljs-string">"b"</span>, <span class="hljs-number">4</span>);
+System.out.print(map.get(<span class="hljs-string">"a"</span>));
+System.out.println(map);
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>1{a=1, b=4, c=3}</code><br>
+      <strong>解析：</strong> LinkedHashMap 按照放入的順序來鏈接元素，但是當元素已經存在時并不會調整元素順序，只會替換對應的 value。其 put 使用 HashMap 的 put，沒有任何改變。
+    </p>
+    <h4>11. List 和 Collection</h4>
+    <pre class="hljs pre-code"><code><div><span class="hljs-keyword">var</span> ints = List.of(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>);
+<span class="hljs-keyword">var</span> a = Arrays.asList(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>);
+<span class="hljs-keyword">var</span> c = Collections.unmodifiableCollection(ints);
+<span class="hljs-keyword">var</span> l = Collections.unmodifiableList(ints);
+
+System.out.print(a.equals(c) + <span class="hljs-string">" "</span>);
+System.out.print(a.equals(l) + <span class="hljs-string">" "</span>);
+System.out.println(c.equals(l));
+</div></code></pre>
+    <p><strong>輸出：</strong> <code>false true false</code><br>
+      <strong>解析：</strong>
+    </p>
+    <ul>
+      <li>其中 a.equals(c) 中 a 的類型為 Arrays.ArrayList，使用 equals 代碼如下， 但是 c 類型為 UnmodifiableCollection，并沒有實現 List
+        接口，比較中類型不對返回了false。</li>
+    </ul>
+    <pre class="hljs"><code><div><span class="hljs-comment">// AbstractList</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">equals</span><span class="hljs-params">(Object o)</span> </span>{
+    <span class="hljs-keyword">if</span> (o == <span class="hljs-keyword">this</span>)
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+    <span class="hljs-keyword">if</span> (!(o <span class="hljs-keyword">instanceof</span> List))
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+
+    ListIterator&lt;E&gt; e1 = listIterator();
+    ListIterator&lt;?&gt; e2 = ((List&lt;?&gt;) o).listIterator();
+    <span class="hljs-keyword">while</span> (e1.hasNext() &amp;&amp; e2.hasNext()) {
+        E o1 = e1.next();
+        Object o2 = e2.next();
+        <span class="hljs-keyword">if</span> (!(o1==<span class="hljs-keyword">null</span> ? o2==<span class="hljs-keyword">null</span> : o1.equals(o2)))
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+    <span class="hljs-keyword">return</span> !(e1.hasNext() || e2.hasNext());
+}
+</div></code></pre>
+    <ul>
+      <li>a.equals(l): equals 代碼如上，l 的類型為 UnmodifiableList，實現了 List 接口，a 和 l 包含相同元素，因而返回 true。</li>
+      <li>c.equals(l): Collection 并沒有實現 equals 方法，而是繼承的 Object 的方法，因爲 c 和 l 并不是同一個引用，返回 false。</li>
+    </ul>
+    <h3>總結</h3>
+    <ul>
+      <li>對 null 多加注意。</li>
+      <li>反復檢查在 map 和 collection 上創建的 view。</li>
+      <li>反復檢查方法引用的類型，參數等。</li>
+    </ul>
+
+    <div id="gitalk-container"></div>
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+      var gitalk = new Gitalk({
+        clientID: '189b60b1b54ae3d722fd',
+        clientSecret: '53d7f18d62c907b95664a122e98cfea63142a1f2',
+        repo: 'lsry.github.io',
+        owner: 'lsry',
+        admin: ['lsry'],
+        id: 'java_collections_puzzles',      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+    </script>
+  </div>
+</body>
+
+</html>

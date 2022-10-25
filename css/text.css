@@ -41,6 +41,7 @@ h4 {
   padding-bottom: 5px;
   color: #6c6c6c;
   width: 50%;
+  margin-bottom: 10px;
 }
 
 p, ul li{
@@ -83,6 +84,10 @@ pre {
   display: block;
   width: 100%;
   overflow: auto;
+}
+
+.pre-code {
+  margin-top: 10px;
 }
 
 @media (max-width: 750px) {
