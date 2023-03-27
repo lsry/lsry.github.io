@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="cms_Hans">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Java 集合題目</title>
+  <link href="../../css/text.css" rel="stylesheet">
+  <link href="../../css/code.css" rel="stylesheet">
+  <link rel="shortcut icon" href="../../img/lsry.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+  <div class="inner">
+    <h2>用 java 實現代數數據類型</h2>
+    <h3>一、代數數據類型</h3>
+    <h4>Ⅰ、基本定義</h4>
+    <p>根據維基百科 <a href="https://en.wikipedia.org/wiki/Algebraic_data_type">Algebraic data type</a>
+      的定義，代數數據類型其他類型進行組合的一種複雜的數據結構，根據組合的方式分爲積類型和和類型。</p>
+    <p>積類型（Product Type）可以理解为结构体类型，該類型可以由一到多个類型组成。比如，用積類型表示一个人的信息，包括姓名、年龄、地址等多个属性。</p>
+    <p>和类型（Sum Type）可以理解为联合类型，表示一个类型可以是多个类型之一。比如，用和類型表達訂單狀態，值可能是“已支付”、“已发货”、“已取消”等之一。</p>
+    <h4>Ⅱ、理解積與和</h4>
+    <p>對於一個類型 T，其可能的取值集合為 S，對應的長度為 |S|。比如對於下面的枚舉 Nums 類型，其 S = {ONE, TWO, THREE}，|S| = 3。</p>
+    <pre class="hljs"><code><div><span class="hljs-keyword">enum</span> Nums {
+    ONE, TWO, THREE
+}
+</div></code></pre>
+    <p>假設有類型 T1，T2 對應的取值集合為 S1，S2。</p>
+    <p>那麽可以定義和類型為 <code>T_SUM = T1 || T2</code>，所形成的集合為
+      <code>S_SUM = {x | x ∈ S1 or x ∈ S2}, |S_SUM| = |S1| + |S2|</code>。可見和類型是對類型做邏輯或運算，形成的結果集合的長度為運算分量的集合長度之和。</p>
+    <p>對於積類型，是運算類型閒做笛卡爾積，長度為對應運算分量集合長度的乘積。定義如下：<code>T_PRO = T1 x T2</code>, 所形成的集合為
+      <code>S_PRO = {(x, y) | x ∈ S1 &amp;&amp; y ∈ S2}, |S_PRO| = |S1| * |S2|</code>。</p>
+    <h3>二、實現積類型</h3>
+    <p>java 原生支持積類型，直接使用 class 表示即可。如下代碼所示，Point 為一個積類型，對應的 x，y 分量，該 Point 的取值爲 (x, y) 的所有可能性。</p>
+    <pre class="hljs"><code><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Point</span> </span>{
+    <span class="hljs-keyword">int</span> x;
+    <span class="hljs-keyword">int</span> y;
+}
+</div></code></pre>
+    <h3>三、實現和類型</h3>
+    <p>之前 Java 對和類型的支持並不好，一個相近的是枚舉類型，如下：</p>
+    <pre class="hljs"><code><div><span class="hljs-keyword">enum</span> State {
+    ONE(<span class="hljs-string">"one"</span>), TWO(<span class="hljs-string">"two"</span>), THREE(<span class="hljs-string">"three"</span>)
+
+    String msg;
+    State(String s) {
+        msg = s;
+    }
+}
+</div></code></pre>
+    <p>缺點是無法為每個分量單獨定義特定的數據類型，每個分量都是相同的積類型。可考慮通過接口或抽象類的方式分別為每種類型定義一個類。Option 是一般上需要實現為和類型的類型，包含兩個類，其中 None 代表數據不存在，Some
+      代表數據存在，任何一個變量必然屬於這兩種情況之一。因此一下用 Option 做例子，來看看具體的實現。</p>
+    <pre class="hljs"><code><div><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">MyOptionI</span>&lt;<span class="hljs-title">T</span>&gt; </span>{}
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyOptionINone</span>&lt;<span class="hljs-title">T</span>&gt; <span class="hljs-keyword">implements</span> <span class="hljs-title">MyOptionI</span>&lt;<span class="hljs-title">T</span>&gt; </span>{}
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyOptionISome</span>&lt;<span class="hljs-title">T</span>&gt; <span class="hljs-keyword">implements</span> <span class="hljs-title">MyOptionI</span>&lt;<span class="hljs-title">T</span>&gt; </span>{
+	<span class="hljs-keyword">public</span> T value;
+	<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">MyOptionISome</span><span class="hljs-params">(T v)</span> </span>{
+		<span class="hljs-keyword">this</span>.value = v;
+	}
+}
+
+<span class="hljs-keyword">abstract</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyOption</span>&lt;<span class="hljs-title">T</span>&gt; </span>{}
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyOptionNone</span>&lt;<span class="hljs-title">T</span>&gt; <span class="hljs-keyword">extends</span> <span class="hljs-title">MyOption</span>&lt;<span class="hljs-title">T</span>&gt; </span>{}
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MyOptionSome</span>&lt;<span class="hljs-title">T</span>&gt; <span class="hljs-keyword">extends</span> <span class="hljs-title">MyOption</span>&lt;<span class="hljs-title">T</span>&gt; </span>{
+	<span class="hljs-keyword">public</span> T value;
+	<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">MyOptionSome</span><span class="hljs-params">(T v)</span> </span>{
+		value = v;
+	}
+}
+</div></code></pre>
+    <p>這樣的代碼在使用的時候就需要通過 instance 進行判斷，這樣沒有語法支持使用起來比較麻煩。而且由於代碼可能發生變動，產生新的類繼承了抽象類或實現接口，if 無法保證判斷了所有情況。</p>
+    <pre class="hljs"><code><div>MyOptionINone&lt;Integer&gt; opt = <span class="hljs-keyword">new</span> MyOptionINone&lt;Integer&gt;(Integer.valueOf(<span class="hljs-number">100</span>));
+<span class="hljs-keyword">if</span> (opt <span class="hljs-keyword">instanceof</span> MyOptionINone) {
+    System.out.println(<span class="hljs-string">"opc is null"</span>);
+} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (opt <span class="hljs-keyword">instanceof</span> MyOptionISome) {
+    MyOptionISome&lt;T&gt; opci = (MyOptionISome&lt;T&gt;)opt;
+    System.out.println(<span class="hljs-string">"opc data: "</span> + opci.value);
+}
+</div></code></pre>
+    <p>在後續的 Java 改進中增加了 record，封閉類及 switch 模式匹配，這個問題得到一定緩解，具體實現代碼如下：</p>
+    <pre class="hljs"><code><div>sealed <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">MyOptionR</span>&lt;<span class="hljs-title">T</span>&gt; </span>{
+	<span class="hljs-function">T <span class="hljs-title">orElse</span><span class="hljs-params">(T other)</span></span>;
+	<span class="hljs-keyword">public</span> record None&lt;T&gt;() implements MyOptionR&lt;T&gt; {
+		<span class="hljs-function"><span class="hljs-keyword">public</span> T <span class="hljs-title">orElse</span><span class="hljs-params">(T other)</span> </span>{
+			<span class="hljs-keyword">return</span> other;
+		}
+	}
+	<span class="hljs-keyword">public</span> record Some&lt;T&gt;(T value) implements MyOptionR&lt;T&gt; {
+		<span class="hljs-keyword">public</span> Some {
+			<span class="hljs-keyword">if</span> (value == <span class="hljs-keyword">null</span>) {
+				<span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> NullPointerException();
+			}
+		}
+
+		<span class="hljs-function"><span class="hljs-keyword">public</span> T <span class="hljs-title">orElse</span><span class="hljs-params">(T other)</span> </span>{
+			<span class="hljs-keyword">return</span> value;
+		}
+	}
+}
+</div></code></pre>
+    <p>上面新定義了一個 MyOptionR 接口，其兩個實現的 record 為 None 和 Some，均實現了對應接口。接下來是使用 switch 來判斷變量類型：</p>
+    <pre class="hljs"><code><div>MyOptionR&lt;String&gt; opc = <span class="hljs-keyword">new</span> MyOptionR.Some&lt;String&gt;(<span class="hljs-string">"foo"</span>);
+<span class="hljs-keyword">switch</span> (opc) {
+    <span class="hljs-keyword">case</span> MyOptionR.None&lt;String&gt;() -&gt; System.out.println(<span class="hljs-string">"None"</span>);
+    <span class="hljs-keyword">case</span> MyOptionR.Some&lt;String&gt;(String value) -&gt; System.out.println(value);
+}
+</div></code></pre>
+    <p>此外，如果想爲類型增加行爲方法，則需要在接口，每個實現的 record 裏面增加對應的方法，如上面定義的 orElse 方法，為每個類型實現一個。相比於原版來説，將 if
+      分支拆開放在每個類中，但是代碼量相比是增加了的。如果只是單純存儲數據則會比較方便，比如定義二叉樹的結點，其中不添加任何其他方法。下面定義了二叉樹節點及求深度的方法：</p>
+    <pre class="hljs"><code><div>sealed <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">TreeNode</span> </span>{
+	<span class="hljs-function"><span class="hljs-keyword">public</span> record <span class="hljs-title">EmptyNode</span><span class="hljs-params">()</span> implements TreeNode </span>{}
+	<span class="hljs-function"><span class="hljs-keyword">public</span> record <span class="hljs-title">Node</span><span class="hljs-params">(<span class="hljs-keyword">int</span> value, TreeNode left, TreeNode right)</span> implements TreeNode </span>{}
+}
+
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">depth</span><span class="hljs-params">(TreeNode root)</span> </span>{
+    <span class="hljs-keyword">switch</span> (root) {
+        <span class="hljs-keyword">case</span> TreeNode.EmptyNode() -&gt; {
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+        }
+        <span class="hljs-keyword">case</span> TreeNode.Node(<span class="hljs-keyword">int</span> value, TreeNode left, TreeNode right) -&gt; {
+            <span class="hljs-keyword">return</span> Math.max(depth(left), depth(right)) + <span class="hljs-number">1</span>;
+        }
+    }
+}
+</div></code></pre>
+    <h3>四、總結</h3>
+    <p>由於 Java 最近發展很快，引入了一堆新特性，record 的引入及相關配套設施為代數數據類型的實現簡化了一些步驟，有利於通過其解決一些問題。</p>
+  </div>
+</body>
+
+</html>
