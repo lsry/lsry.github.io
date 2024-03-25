@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Javascript 中的 for 循環</title>
+	<link href="../../css/text.css" rel="stylesheet">
+	<link href="../../css/code.css" rel="stylesheet">
+	<link rel="shortcut icon" href="../../img/lsry.png">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="inner">
+	<h2>Javascript 中的 for 循環</h2>
+<h3 id="%E9%9B%B6%E5%89%8D%E8%A8%80">零、前言</h3>
+<p>由於在項目中經常使用 js，而 for 循環又是經常使用。現在整理一下，方便在開發的時候選擇合適的方法。</p>
+<h3 id="%E4%B8%80%E6%BA%96%E5%82%99">一、準備</h3>
+<p>爲了更好的描述問題，先準備一個數組和一個對象類型數據，後面的代碼均用這兩個變量演示。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> arr = [<span class="hljs-string">"a"</span>, <span class="hljs-string">"b"</span>, <span class="hljs-string">"c"</span>, <span class="hljs-string">"d"</span>,<span class="hljs-string">"e"</span>];
+<span class="hljs-keyword">const</span> obj = {
+    <span class="hljs-attr">id</span>: <span class="hljs-number">234</span>,
+    <span class="hljs-attr">name</span>: <span class="hljs-string">"foo"</span>,
+    <span class="hljs-attr">account</span>: <span class="hljs-string">"bar"</span>
+};
+</div></code></pre>
+<h3 id="%E4%BA%8C%E6%99%AE%E9%80%9A%E7%9A%84-for-%E5%BE%AA%E7%92%B0">二、普通的 for 循環</h3>
+<p>這種是遍歷索引的方式，適用於數組。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>;i &lt; arr.length;++i) {
+    <span class="hljs-built_in">console</span>.log(arr[i]);
+}
+</div></code></pre>
+<h3 id="%E4%B8%89for-in">三、for in</h3>
+<p>這種形式獲取數組的索引或對象的鍵，然後根據這個在獲取對應位置的值。</p>
+<h4 id="1-%E6%95%B8%E7%B5%84%E9%81%8D%E6%AD%B7">1. 數組遍歷</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> x <span class="hljs-keyword">in</span> arr) {
+    <span class="hljs-built_in">console</span>.log(x, <span class="hljs-string">"-"</span>, arr[x]);
+}
+</div></code></pre>
+<h4 id="2-%E5%B0%8D%E8%B1%A1%E9%81%8D%E6%AD%B7">2. 對象遍歷</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> x <span class="hljs-keyword">in</span> obj) {
+    <span class="hljs-built_in">console</span>.log(x, <span class="hljs-string">"-"</span>, obj[x]);
+}
+</div></code></pre>
+<h3 id="%E5%9B%9Bfor-of">四、for of</h3>
+<p>此種循環遍歷可迭代對象，獲得的是對應的值，要獲得索引需要用 entries 方法。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> x <span class="hljs-keyword">of</span> arr) {
+    <span class="hljs-built_in">console</span>.log(x);
+}
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [i, x] <span class="hljs-keyword">of</span> arr.entries()) {
+    <span class="hljs-built_in">console</span>.log(i, <span class="hljs-string">"-"</span>, x);
+}
+</div></code></pre>
+<h3 id="%E4%BA%94foreach">五、foreach</h3>
+<p>函數式遍歷可迭代對象</p>
+<pre class="hljs"><code><div>arr.forEach(<span class="hljs-function">(<span class="hljs-params">v, i</span>) =&gt;</span> {
+    <span class="hljs-built_in">console</span>.log(i, <span class="hljs-string">"-"</span>, v);
+});
+</div></code></pre>
+<h3 id="%E5%85%ADobject-%E6%96%B9%E6%B3%95%E4%BE%86%E8%BC%94%E5%8A%A9%E9%81%8D%E6%AD%B7%E5%B0%8D%E8%B1%A1">六、Object 方法來輔助遍歷對象</h3>
+<h4 id="1-keys">1. keys()</h4>
+<p>遍歷對象的鍵返回數組。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> k <span class="hljs-keyword">of</span> <span class="hljs-built_in">Object</span>.keys(obj)) {
+    <span class="hljs-built_in">console</span>.log(k, <span class="hljs-string">'-'</span>, obj[k]);
+}
+</div></code></pre>
+<h4 id="2-values">2. values()</h4>
+<p>遍歷對象的值，返回值對應的數組。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> v <span class="hljs-keyword">of</span> <span class="hljs-built_in">Object</span>.values(obj)) {
+    <span class="hljs-built_in">console</span>.log(v);
+}
+</div></code></pre>
+<h4 id="3-entries">3. entries()</h4>
+<p>遍歷對象鍵值對，返回數組。</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> [k, v] <span class="hljs-keyword">of</span> <span class="hljs-built_in">Object</span>.entries(obj)) {
+    <span class="hljs-built_in">console</span>.log(k, <span class="hljs-string">"-"</span>, v);
+}
+</div></code></pre>
+
+  </div>
+</body>
+</html>
