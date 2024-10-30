@@ -13,7 +13,7 @@
 <h3>一、簡介</h3>
 <p>在業務領域增多，規模擴大的情況下，單個系統已經無法滿足需求的變化，需要根據具體領域使用獨立系統完成功能。對於用戶來説就需要在這些獨立系統上分別進行登錄。在使用相同的賬號情況下，每個系統都登錄一次是多餘的，單點登錄的需求就應運而生。在使用單點登錄的情況下，在用戶在某個子系統 A 完成登錄后，一段時間内，用戶需要訪問子系統 B 就不需要再一次執行登錄操作了。</p>
 <p>單點登錄最常見的實現方式使用 Central Authentication Service(CAS) 協議實現，其具體流程如下圖所示。</p>
-<p class="cen_img"><img src="https://apereo.github.io/cas/6.6.x/images/cas_flow_diagram.png" alt="" width="100%"></p>
+<p class="cen_img"><img src="cas_flow_diagram.png" alt="" width="100%"></p>
 <p>其實現方式將參與主體劃分爲了三個部分，包含瀏覽器，中心認證服務器，各種業務應用。用戶訪問應用是就會產生圖中的流程：</p>
 <ol>
 <li>用戶訪問 appA，appA 發現用戶沒有登錄，將請求重定向的認證服務器。</li>
@@ -42,7 +42,7 @@
 <p>應用服務通過重定向該接口，造成用戶需要登陸認證服務。登錄完成後，認證服務進行必要的設置，重新重定向回應用服務。</p>
 <p><strong>method：</strong> GET<br>
 <strong>參數：</strong></p>
-<table>
+<table class="borderTable">
 <thead>
 <tr>
 <th>參數名</th>
