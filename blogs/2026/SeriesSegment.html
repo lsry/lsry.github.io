@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>流水號生成號段模式</title>
+    <link href="../../css/text.css" rel="stylesheet">
+    <link href="../../css/code.css" rel="stylesheet">
+    <link rel="shortcut icon" href="../../img/lsry.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <div class="inner">
+        <h2 id="流水號生成號段模式">流水號生成——號段模式</h2>
+        <h3 id="零引言">零、引言</h3>
+        <p>由於最近接觸了流水號生成相關的項目代碼，但是遇到了并發問題導致了生成的號出現了重複的情況。爲了厘清其中的關鍵點，於是實現相關代碼去保證正確的流水號生成，幫助排查相關問題是有必要的。此外流水號生成在許多場景多有出現，多熟悉實踐相關邏輯會比較有幫助。<br>
+            經和 AI 溝通得知，流水號生成的實現方式一般有三種，包含數據庫行鎖，號段模式和利用 redis 原子性實現。其中號段模式少了 redis，但是比簡單使用數據庫行鎖應對的并發量要大，當前的項目情況下，redis
+            一般不會安裝，因此優先瞭解以數據庫爲主的號段模式實現會是一個比較好的入門途徑。</p>
+        <h3 id="壹需求分析">壹、需求分析</h3>
+        <p>一般情況下，常見的流水號是按天生成的，當天生成的流水號唯一，不重複。此外需要適配不同的業務模式，考慮使用不同的業務前綴。因此流水號的格式變成<code>業務前綴+日期+順序號</code>的形式。<br>
+            流水號一般情況下，也不需要呈現按數字逐個增長的特性，一些數字沒有用到其實不影響整體的流程。這樣的情況下適配號段模式，在宕機或者應用重啓的情況下，仍然保證流程可用，而不會產生影響。</p>
+        <h3 id="貳具體設計">貳、具體設計</h3>
+        <h4 id="一數據庫設計">一、數據庫設計</h4>
+        <p>根據以上需求，數據庫需要保存業務前綴，日期等所需信息，以及號段需要的當前最大號及遞增步長。 具體如下：</p>
+        <table class="borderTable">
+            <thead>
+                <tr>
+                    <th>名稱</th>
+                    <th>類型</th>
+                    <th>説明</th>
+                    <th>描述</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>prefix</td>
+                    <td>varchar</td>
+                    <td>業務前綴</td>
+                    <td>PK</td>
+                </tr>
+                <tr>
+                    <td>seq_date</td>
+                    <td>varchar</td>
+                    <td>日期</td>
+                    <td>PK</td>
+                </tr>
+                <tr>
+                    <td>max_seq</td>
+                    <td>int</td>
+                    <td>當前已分配最大序列號</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>step</td>
+                    <td>int</td>
+                    <td>遞增步長</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>update_time</td>
+                    <td>datetime</td>
+                    <td>更新日期</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <h4 id="二編碼設計">二、編碼設計</h4>
+        <p>Ⅰ、整體流程</p>
+        <ol>
+            <li>號段模式需要在内存中存儲對應的流水號生成號段，包含當前生成的序列號和最大序列號。如果該類沒有初始化或者需要生成的序列號超出了最大序列號，則需要向數據庫申請新的號段，並更新對應行。號段在合理範圍内，則為請求生成新的序列號。
+            </li>
+            <li>我們需要在内存中保存業務前綴到號段的映射。此外需要號段和對應鎖之間的映射，對每一個業務模式可以分開鎖定，避免影響其他業務。</li>
+            <li>當前我們已知業務前綴 prefix 和當天日期
+                yyyyMMdd，需要得到這次生成的流水號。根據映射尋找號段和號段用完申請新號段這兩步驟可以分開。因爲后一步需要加鎖，避免兩個綫程同時申請相同號段。前一步因爲號段的函數加了鎖，這一步就沒必要擴大了。</li>
+            <li>號段申請：如果數據庫不存在對應行，需要新增數據，否則需要根據遞增步長更新最大可用序列號，然後將對應數據返回，作爲此次申請的號段。</li>
+        </ol>
+        <p>Ⅱ、實現細節</p>
+        <ol>
+            <li>號段：該類需要可以判斷是否號越界和生成一個可用的序列號。由於可能會多綫程訪問，具體的函數需要枷鎖。</li>
+            <li>號段申請：可能有綫程新增同一行數據，在一般實現情況下，需要先查詢數據，如果爲空，則新增，但是利用數據庫新增語句中重複主鍵更新的語法則可以靜默更新，而避免插入同一行失敗。具體代碼如下：</li>
+        </ol>
+        <pre class="hljs"><code><div><span class="hljs-keyword">insert into</span> series_segment(prefix, seq_date, max_seq, step, update_time)
+<span class="hljs-keyword">values</span> (:prefix, :seqDate, <span class="hljs-number">0</span>, :step, <span class="hljs-built_in">CURRENT_TIMESTAMP</span>)
+<span class="hljs-keyword">ON</span> DUPLICATE KEY <span class="hljs-keyword">UPDATE</span> max_seq <span class="hljs-operator">=</span> max_seq
+</div></code></pre>
+        <p>Ⅲ、并發安全性<br>
+            我認爲并發安全即是要保證并發過程中的不變量不變。對於號段模式代碼來説，生成的序列號最大值不超過數據庫裏對應行的最大值即可。此外需要保證生成序列號唯一。</p>
+        <h3 id="叁測試">叁、測試</h3>
+        <h4 id="一功能測試">一、功能測試</h4>
+        <p>這一步實現相關功能，然後傳入對應的業務模式前綴，觀察是否獲得序列號，并且數據庫號段數據正確即可，序列號沒有超過號段最大值即可。</p>
+        <h4 id="二壓力測試">二、壓力測試</h4>
+        <ol>
+            <li>
+                <p>壓力測試目標</p>
+                <ul>
+                    <li>绝对不重复</li>
+                    <li>单 prefix + 单 date 内严格递增（不回退、不跳号可以接受）</li>
+                    <li>跨 prefix 互不影响</li>
+                    <li>数据库中 max_seq 永远单调递增</li>
+                    <li>无死锁、无异常、无事务冲突</li>
+                </ul>
+            </li>
+            <li>
+                <p>測試維度</p>
+            </li>
+        </ol>
+        <table class="borderTable">
+            <thead>
+                <tr>
+                    <th>维度</th>
+                    <th>数值</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>并发线程数</td>
+                    <td>50 / 100 / 200</td>
+                </tr>
+                <tr>
+                    <td>每线程请求次数</td>
+                    <td>1,000</td>
+                </tr>
+                <tr>
+                    <td>总请求数</td>
+                    <td>50,000 ~ 200,000</td>
+                </tr>
+                <tr>
+                    <td>prefix</td>
+                    <td>数量 1、5、10（混合）</td>
+                </tr>
+                <tr>
+                    <td>date</td>
+                    <td>固定当天</td>
+                </tr>
+            </tbody>
+        </table>
+        <ol start="3">
+            <li>測試保證
+                <ul>
+                    <li>订单号唯一性</li>
+                    <li>每个 prefix 的 seq 不重复</li>
+                    <li>数据库最终状态校验：實際發號最大值小於等於數據庫對應行最大值</li>
+                </ul>
+            </li>
+        </ol>
+        <h3 id="肆後記">肆、後記</h3>
+        <p>壓力測試確實是有必要的，我在功能測試只能保證基本可用。但是上壓力測試以後，確實發現了幾個并發問題，無法保證上面的并發要求。此外號段模式可以將步長減少，這樣并發壓力會更大，數據庫訪問頻次也會增多，可看出更多的問題。
+        </p>
+    </div>
+</body>
+
+</html>
